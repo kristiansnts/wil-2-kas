@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model KasUmum {
+  id        String   @id @default("singleton")
+  balance   Float    @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model Division {
+  id           String        @id @default(cuid())
+  name         String
+  balance      Float         @default(0)
+  transactions Transaction[]
+  events       Event[]
+  createdAt    DateTime      @default(now())
+}
+
+model Event {
+  id           String        @id @default(cuid())
+  name         String
+  date         DateTime
+  divisionId   String
+  division     Division      @relation(fields: [divisionId], references: [id])
+  transactions Transaction[]
+  createdAt    DateTime      @default(now())
+}
+
+model Transaction {
+  id         String    @id @default(cuid())
+  date       DateTime
+  desc       String
+  amount     Float
+  type       String
+  scope      String
+  kategori   String?
+  divisionId String?
+  division   Division? @relation(fields: [divisionId], references: [id])
+  eventId    String?
+  event      Event?    @relation(fields: [eventId], references: [id])
+  refDivId   String?
+  createdAt  DateTime  @default(now())
+}
