@@ -28,6 +28,11 @@ export function proxy(req: NextRequest) {
     if (divisionId !== session.divisionId) return NextResponse.redirect(new URL('/login', req.url))
   }
 
+  if (pathname.startsWith('/laporan')) {
+    // both admin and division users may access laporan
+    if (!session) return NextResponse.redirect(new URL('/login', req.url))
+  }
+
   return NextResponse.next()
 }
 

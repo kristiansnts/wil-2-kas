@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useMemo, useTransition } from 'react'
+import { useState, useMemo, useTransition, useRef } from 'react'
 import Link from 'next/link'
 import { fmt, fmtShort, fmtDate, todayStr } from '@/lib/format'
-import { addTxnDivisi, addEvent } from '@/lib/actions/divisi'
+import { addTxnDivisi, addEvent, deleteTxnDivisi, updateTxnDivisi, updateEvent, deleteEvent } from '@/lib/actions/divisi'
 import { logout } from '@/lib/actions/auth'
 import type { DivisionData, TxnDivisiItem, EventItem } from '@/lib/types'
 
@@ -18,6 +18,9 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
     plus: <><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></>,
     minus: <line x1="5" y1="12" x2="19" y2="12" />,
     flag: <><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><line x1="4" y1="22" x2="4" y2="15" /></>,
+    trash: <><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></>,
+    pencil: <><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></>,
+    log:    <><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></>,
   }
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -37,7 +40,14 @@ function ExcelIcon() {
   )
 }
 
-function TxnRow({ txn, eventName }: { txn: TxnDivisiItem; eventName?: string }) {
+const btnIcon: React.CSSProperties = {
+  width: 34, height: 34, border: 'none', borderRadius: 10,
+  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+}
+
+function TxnRow({ txn, eventName, onEdit, onDelete, isPending }: { txn: TxnDivisiItem; eventName?: string; onEdit: () => void; onDelete: () => void; isPending: boolean }) {
+  const [confirm, setConfirm] = useState(false)
+  const isTransferFromUmum = txn.desc === 'Transfer dari Kas Umum'
   return (
     <div className="txn-row">
       <div className={`txn-icon ${txn.type}`}>{txn.type === 'masuk' ? '↑' : '↓'}</div>
@@ -47,10 +57,114 @@ function TxnRow({ txn, eventName }: { txn: TxnDivisiItem; eventName?: string }) 
           <span className="txn-meta-date">{fmtDate(txn.date)}</span>
           {txn.kategori && <span className={`badge ${txn.kategori}`}>{txn.kategori}</span>}
           {eventName && <span className="badge event" title={eventName}>{eventName}</span>}
+          {isTransferFromUmum && <span className="badge transfer">dari kas umum</span>}
         </div>
       </div>
-      <div className={`txn-amount ${txn.type}`}>
-        {txn.type === 'masuk' ? '+' : '-'}{fmtShort(txn.amount)}
+      {isTransferFromUmum ? (
+        <div className={`txn-amount ${txn.type}`}>
+          {txn.type === 'masuk' ? '+' : '-'}{fmtShort(txn.amount)}
+        </div>
+      ) : confirm ? (
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+          <button
+            onClick={() => { setConfirm(false); onDelete() }}
+            disabled={isPending}
+            style={{ fontSize: 12, padding: '5px 12px', borderRadius: 8, border: 'none', background: 'var(--red)', color: 'white', cursor: 'pointer', fontWeight: 600 }}
+          >Hapus</button>
+          <button
+            onClick={() => setConfirm(false)}
+            style={{ fontSize: 12, padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}
+          >Batal</button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div className={`txn-amount ${txn.type}`}>
+            {txn.type === 'masuk' ? '+' : '-'}{fmtShort(txn.amount)}
+          </div>
+          <button onClick={onEdit} disabled={isPending} style={{ ...btnIcon, background: 'var(--accent)', color: 'white' }}>
+            <Icon name="pencil" size={15} />
+          </button>
+          <button onClick={() => setConfirm(true)} disabled={isPending} style={{ ...btnIcon, background: 'var(--red)', color: 'white' }}>
+            <Icon name="trash" size={15} />
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function FormEditTxnDivisiSheet({ txn, events, onClose, onSave, isPending }: {
+  txn: TxnDivisiItem
+  events: EventItem[]
+  onClose: () => void
+  onSave: (payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string; kategori: 'harian' | 'event'; eventId?: string }) => void
+  isPending: boolean
+}) {
+  const [tipe, setTipe] = useState(txn.type)
+  const [kategori, setKategori] = useState<'harian' | 'event'>(txn.kategori ?? 'harian')
+  const [eventId, setEventId] = useState(txn.eventId ?? events[0]?.id ?? '')
+  const [jumlah, setJumlah] = useState(String(txn.amount))
+  const [keterangan, setKeterangan] = useState(txn.desc)
+  const [tanggal, setTanggal] = useState(txn.date.slice(0, 10))
+  const submittingRef = useRef(false)
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (submittingRef.current || isPending) return
+    const amount = parseInt(jumlah) || 0
+    if (!amount || !keterangan) return
+    submittingRef.current = true
+    onSave({ type: tipe, amount, desc: keterangan, date: tanggal, kategori, eventId: kategori === 'event' ? eventId : undefined })
+  }
+
+  return (
+    <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="sheet">
+        <div className="sheet-handle" />
+        <div className="sheet-title">Edit Transaksi</div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="form-group">
+            <label className="form-label">Tipe</label>
+            <div className="seg-control">
+              <button type="button" className={`seg-btn ${tipe === 'masuk' ? 'active masuk' : ''}`} onClick={() => setTipe('masuk')}>↑ Pemasukan</button>
+              <button type="button" className={`seg-btn ${tipe === 'keluar' ? 'active keluar' : ''}`} onClick={() => setTipe('keluar')}>↓ Pengeluaran</button>
+            </div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Kategori</label>
+            <div className="seg-control">
+              <button type="button" className={`seg-btn ${kategori === 'harian' ? 'active' : ''}`} onClick={() => setKategori('harian')}>Harian</button>
+              <button type="button" className={`seg-btn ${kategori === 'event' ? 'active' : ''}`} onClick={() => setKategori('event')}>Event</button>
+            </div>
+          </div>
+          {kategori === 'event' && (
+            <div className="form-group">
+              <label className="form-label">Event</label>
+              {events.length === 0 ? (
+                <div style={{ fontSize: 13, color: 'var(--muted)', padding: '10px 0' }}>Belum ada event.</div>
+              ) : (
+                <select className="form-select" value={eventId} onChange={e => setEventId(e.target.value)}>
+                  {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name}</option>)}
+                </select>
+              )}
+            </div>
+          )}
+          <div className="form-group">
+            <label className="form-label">Jumlah (Rp)</label>
+            <input className="form-input" type="number" inputMode="numeric" value={jumlah} onChange={e => setJumlah(e.target.value)} required min="1" />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Keterangan</label>
+            <input className="form-input" type="text" value={keterangan} onChange={e => setKeterangan(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Tanggal</label>
+            <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+          </div>
+          <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
+            {isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+          </button>
+        </form>
       </div>
     </div>
   )
@@ -77,11 +191,14 @@ function FormTxnDivisiSheet({
   const [jumlah, setJumlah] = useState('')
   const [keterangan, setKeterangan] = useState('')
   const [tanggal, setTanggal] = useState(todayStr())
+  const submittingRef = useRef(false)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (submittingRef.current || isPending) return
     const amount = parseInt(jumlah) || 0
     if (!amount || !keterangan) return
+    submittingRef.current = true
     onSave({ divisionId, type: tipe, kategori, eventId: kategori === 'event' ? eventId : undefined, amount, desc: keterangan, date: tanggal })
   }
 
@@ -155,10 +272,13 @@ function FormEventSheet({
 }) {
   const [nama, setNama] = useState('')
   const [tanggal, setTanggal] = useState(todayStr())
+  const submittingRef = useRef(false)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (submittingRef.current || isPending) return
     if (!nama) return
+    submittingRef.current = true
     onSave({ name: nama, date: tanggal })
   }
 
@@ -185,11 +305,93 @@ function FormEventSheet({
   )
 }
 
+function EventCard({ ev, spent, isPending, readOnly, onSelect, onEdit, onDelete }: {
+  ev: EventItem; spent: number; isPending: boolean; readOnly: boolean
+  onSelect: () => void; onEdit: () => void; onDelete: () => void
+}) {
+  const [confirm, setConfirm] = useState(false)
+  return (
+    <div className="event-card" onClick={onSelect}>
+      <div className="event-dot" />
+      <div style={{ flex: 1 }}>
+        <div className="event-name">{ev.name}</div>
+        <div className="event-date">{fmtDate(ev.date)}</div>
+      </div>
+      {!readOnly && (
+        confirm ? (
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => { setConfirm(false); onDelete() }} disabled={isPending}
+              style={{ fontSize: 12, padding: '5px 12px', borderRadius: 8, border: 'none', background: 'var(--red)', color: 'white', cursor: 'pointer', fontWeight: 600 }}>Hapus</button>
+            <button onClick={() => setConfirm(false)}
+              style={{ fontSize: 12, padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}>Batal</button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{fmtShort(spent)} terpakai</div>
+            <button onClick={onEdit} disabled={isPending} style={{ ...btnIcon, background: 'var(--accent)', color: 'white' }}>
+              <Icon name="pencil" size={15} />
+            </button>
+            <button onClick={() => setConfirm(true)} disabled={isPending} style={{ ...btnIcon, background: 'var(--red)', color: 'white' }}>
+              <Icon name="trash" size={15} />
+            </button>
+          </div>
+        )
+      )}
+      {readOnly && (
+        <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{fmtShort(spent)} terpakai</div>
+      )}
+    </div>
+  )
+}
+
+function FormEditEventSheet({ ev, onClose, onSave, isPending }: {
+  ev: EventItem
+  onClose: () => void
+  onSave: (name: string, date: string) => void
+  isPending: boolean
+}) {
+  const [nama, setNama] = useState(ev.name)
+  const [tanggal, setTanggal] = useState(ev.date.slice(0, 10))
+  const submittingRef = useRef(false)
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (submittingRef.current || isPending) return
+    if (!nama) return
+    submittingRef.current = true
+    onSave(nama, tanggal)
+  }
+
+  return (
+    <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="sheet">
+        <div className="sheet-handle" />
+        <div className="sheet-title">Edit Event</div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="form-group">
+            <label className="form-label">Nama Event</label>
+            <input className="form-input" type="text" value={nama} onChange={e => setNama(e.target.value)} required />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Tanggal Event</label>
+            <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+          </div>
+          <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
+            {isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 type SheetState = null | 'masuk' | 'keluar' | 'event'
 type TabState = 'semua' | 'harian' | 'event'
 
 export default function DivisiClient({ division, readOnly = false }: Props) {
   const [sheet, setSheet] = useState<SheetState>(null)
+  const [editTxn, setEditTxn] = useState<TxnDivisiItem | null>(null)
+  const [editEvent, setEditEvent] = useState<EventItem | null>(null)
   const [tab, setTab] = useState<TabState>('semua')
   const [selectedEventId, setSelectedEventId] = useState(division.events[0]?.id ?? '')
   const [isPending, startTransition] = useTransition()
@@ -221,6 +423,34 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
     })
   }
 
+  function handleUpdateEvent(name: string, date: string) {
+    if (!editEvent) return
+    startTransition(async () => {
+      await updateEvent(editEvent.id, division.id, name, date)
+      setEditEvent(null)
+    })
+  }
+
+  function handleDeleteEvent(ev: EventItem) {
+    startTransition(async () => {
+      await deleteEvent(ev.id, division.id)
+    })
+  }
+
+  function handleDeleteTxn(txn: TxnDivisiItem) {
+    startTransition(async () => {
+      await deleteTxnDivisi(txn.id, division.id, txn.amount, txn.type)
+    })
+  }
+
+  function handleUpdateTxn(payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string; kategori: 'harian' | 'event'; eventId?: string }) {
+    if (!editTxn) return
+    startTransition(async () => {
+      await updateTxnDivisi(editTxn.id, division.id, editTxn.amount, editTxn.type, payload)
+      setEditTxn(null)
+    })
+  }
+
   function getEventName(eventId: string | null): string | undefined {
     if (!eventId) return undefined
     return events.find(e => e.id === eventId)?.name
@@ -238,6 +468,9 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
           <div className="topnav-title">{division.name}</div>
           <div className="topnav-sub">{readOnly ? 'Hanya Lihat' : 'Kas Komisi'} · Per {fmtDate(today)}</div>
         </div>
+        <Link href="/log" style={{
+          fontSize: 13, color: 'var(--muted)', padding: '6px 8px',
+        }}>Log</Link>
         <form action={logout}>
           <button type="submit" style={{
             background: 'none', border: 'none', cursor: 'pointer',
@@ -248,18 +481,19 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
 
       <div className="content">
         <div className="balance-card">
-          <button
-            title="Cetak Excel"
+          <Link
+            href="/laporan"
+            title="Laporan Keuangan"
             style={{
-              position: 'absolute', top: 14, right: 14,
-              background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 8,
-              width: 32, height: 32, cursor: 'pointer',
+              position: 'absolute', top: 14, right: 14, zIndex: 1,
+              background: 'rgba(255,255,255,0.15)', borderRadius: 8,
+              width: 32, height: 32,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'white',
             }}
           >
             <ExcelIcon />
-          </button>
+          </Link>
           <div className="balance-label">Saldo Divisi {division.name}</div>
           <div className="balance-amount">{fmt(division.balance)}</div>
           <div className="balance-date">Per {fmtDate(today)}</div>
@@ -300,16 +534,16 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
               {events.map(ev => {
                 const spent = txns.filter(t => t.eventId === ev.id && t.type === 'keluar').reduce((s, t) => s + t.amount, 0)
                 return (
-                  <div key={ev.id} className="event-card" onClick={() => { setSelectedEventId(ev.id); setTab('event') }}>
-                    <div className="event-dot" />
-                    <div style={{ flex: 1 }}>
-                      <div className="event-name">{ev.name}</div>
-                      <div className="event-date">{fmtDate(ev.date)}</div>
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>
-                      {fmtShort(spent)} terpakai
-                    </div>
-                  </div>
+                  <EventCard
+                    key={ev.id}
+                    ev={ev}
+                    spent={spent}
+                    isPending={isPending}
+                    readOnly={readOnly}
+                    onSelect={() => { setSelectedEventId(ev.id); setTab('event') }}
+                    onEdit={() => setEditEvent(ev)}
+                    onDelete={() => handleDeleteEvent(ev)}
+                  />
                 )
               })}
             </div>
@@ -340,7 +574,7 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
               </div>
             ) : (
               filteredTxns.map(txn => (
-                <TxnRow key={txn.id} txn={txn} eventName={getEventName(txn.eventId)} />
+                <TxnRow key={txn.id} txn={txn} eventName={getEventName(txn.eventId)} onEdit={() => setEditTxn(txn)} onDelete={() => handleDeleteTxn(txn)} isPending={isPending} />
               ))
             )}
           </div>
@@ -357,6 +591,12 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
       )}
       {sheet === 'event' && (
         <FormEventSheet onClose={() => setSheet(null)} onSave={handleSaveEvent} isPending={isPending} />
+      )}
+      {editTxn && (
+        <FormEditTxnDivisiSheet txn={editTxn} events={events} onClose={() => setEditTxn(null)} onSave={handleUpdateTxn} isPending={isPending} />
+      )}
+      {editEvent && (
+        <FormEditEventSheet ev={editEvent} onClose={() => setEditEvent(null)} onSave={handleUpdateEvent} isPending={isPending} />
       )}
     </div>
   )

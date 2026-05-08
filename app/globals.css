@@ -267,3 +267,61 @@ a { color: inherit; text-decoration: none; }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+/* Log rows */
+.log-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 16px; position: relative;
+}
+.log-row + .log-row::before {
+  content: ''; position: absolute; top: 0; left: 16px; right: 16px; height: 1px; background: var(--border);
+}
+.log-icon {
+  width: 32px; height: 32px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+}
+.log-icon.tambah { background: var(--green-light); color: var(--green); }
+.log-icon.hapus { background: var(--red-light); color: var(--red); }
+.log-icon.ubah { background: oklch(0.94 0.05 55); color: oklch(0.45 0.12 55); }
+.log-info { flex: 1; min-width: 0; }
+.log-desc { font-size: 13px; font-weight: 500; line-height: 1.4; }
+.log-meta {
+  font-size: 11px; color: var(--muted); margin-top: 4px;
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.log-time { white-space: nowrap; }
+
+/* Log filters */
+.log-filter-row {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px;
+  scrollbar-width: none;
+}
+.log-filter-row::-webkit-scrollbar { display: none; }
+.log-filter-select {
+  flex-shrink: 0; padding: 8px 28px 8px 10px; border: 1.5px solid var(--border);
+  border-radius: 10px; font-size: 12px; font-weight: 500;
+  background: var(--surface); color: #1c1917; outline: none;
+  appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a8a29e' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+}
+.log-filter-select:focus { border-color: var(--accent); }
+
+/* Searchable dropdown */
+.searchable-dropdown {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 300;
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: 14px; overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12); min-width: 200px;
+}
+.searchable-search {
+  width: 100%; padding: 10px 12px; border: none; border-bottom: 1px solid var(--border);
+  font-size: 13px; font-family: inherit; outline: none; background: var(--bg);
+}
+.searchable-list { max-height: 200px; overflow-y: auto; }
+.searchable-option {
+  padding: 10px 12px; font-size: 13px; cursor: pointer; transition: background 0.1s;
+}
+.searchable-option:hover { background: var(--bg); }
+.searchable-option.active { color: var(--accent); font-weight: 600; background: var(--accent-light); }

@@ -40,3 +40,14 @@ export interface DivisionData extends DivisionItem {
   transactions: TxnDivisiItem[]
   events: EventItem[]
 }
+
+export interface LogItem {
+  id: string
+  action: string
+  entity: string
+  desc: string
+  actorRole: string
+  divisionId: string | null
+  divisionName: string | null
+  createdAt: string
+}

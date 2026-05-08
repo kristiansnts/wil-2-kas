@@ -47,3 +47,13 @@ model Transaction {
   refDivId   String?
   createdAt  DateTime  @default(now())
 }
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  action     String
+  entity     String
+  desc       String
+  actorRole  String
+  divisionId String?
+  createdAt  DateTime @default(now())
+}
