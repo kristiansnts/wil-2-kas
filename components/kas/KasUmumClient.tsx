@@ -3,6 +3,7 @@
 import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
 import { fmt, fmtShort, fmtDate, initials, todayStr } from '@/lib/format'
+import { RupiahInput } from '@/components/ui/RupiahInput'
 import { addTxnUmum, addDivision, deleteTxnUmum, updateTxnUmum, updateDivision, deleteDivision } from '@/lib/actions/kas'
 import { logout } from '@/lib/actions/auth'
 import type { DivisionItem, TxnUmumItem } from '@/lib/types'
@@ -126,8 +127,8 @@ function FormEditTxnUmumSheet({ txn, onClose, onSave, isPending }: {
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Jumlah (Rp)</label>
-            <input className="form-input" type="number" inputMode="numeric" value={jumlah} onChange={e => setJumlah(e.target.value)} required min="1" />
+            <label className="form-label">Jumlah</label>
+            <RupiahInput value={jumlah} onChange={setJumlah} required />
           </div>
           <div className="form-group">
             <label className="form-label">Keterangan</label>
@@ -209,8 +210,8 @@ function FormTxnUmumSheet({ tipeInit, onClose, onSave, isPending }: {
             </div>
           </div>
           <div className="form-group">
-            <label className="form-label">Jumlah (Rp)</label>
-            <input className="form-input" type="number" inputMode="numeric" placeholder="0" value={jumlah} onChange={e => setJumlah(e.target.value)} required min="1" />
+            <label className="form-label">Jumlah</label>
+            <RupiahInput value={jumlah} onChange={setJumlah} required />
           </div>
           <div className="form-group">
             <label className="form-label">Keterangan</label>
@@ -266,8 +267,8 @@ function FormTransferSheet({ divisions, onClose, onSave, isPending }: {
             )}
           </div>
           <div className="form-group">
-            <label className="form-label">Jumlah (Rp)</label>
-            <input className="form-input" type="number" inputMode="numeric" placeholder="0" value={jumlah} onChange={e => setJumlah(e.target.value)} required min="1" />
+            <label className="form-label">Jumlah</label>
+            <RupiahInput value={jumlah} onChange={setJumlah} required />
           </div>
           <div className="form-group">
             <label className="form-label">Tanggal</label>
@@ -310,8 +311,8 @@ function FormBuatKomisiSheet({ onClose, onSave, isPending }: {
             <input className="form-input" type="text" placeholder="cth. Acara, Humas" value={nama} onChange={e => setNama(e.target.value)} required />
           </div>
           <div className="form-group">
-            <label className="form-label">Saldo Awal (Rp, opsional)</label>
-            <input className="form-input" type="number" inputMode="numeric" placeholder="0" value={saldoAwal} onChange={e => setSaldoAwal(e.target.value)} min="0" />
+            <label className="form-label">Saldo Awal (opsional)</label>
+            <RupiahInput value={saldoAwal} onChange={setSaldoAwal} />
           </div>
           <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
             {isPending ? 'Membuat...' : 'Buat Komisi'}

@@ -3,6 +3,7 @@
 import { useState, useMemo, useTransition, useRef } from 'react'
 import Link from 'next/link'
 import { fmt, fmtShort, fmtDate, todayStr } from '@/lib/format'
+import { RupiahInput } from '@/components/ui/RupiahInput'
 import { addTxnDivisi, addEvent, deleteTxnDivisi, updateTxnDivisi, updateEvent, deleteEvent } from '@/lib/actions/divisi'
 import { logout } from '@/lib/actions/auth'
 import type { DivisionData, TxnDivisiItem, EventItem } from '@/lib/types'
@@ -150,8 +151,8 @@ function FormEditTxnDivisiSheet({ txn, events, onClose, onSave, isPending }: {
             </div>
           )}
           <div className="form-group">
-            <label className="form-label">Jumlah (Rp)</label>
-            <input className="form-input" type="number" inputMode="numeric" value={jumlah} onChange={e => setJumlah(e.target.value)} required min="1" />
+            <label className="form-label">Jumlah</label>
+            <RupiahInput value={jumlah} onChange={setJumlah} required />
           </div>
           <div className="form-group">
             <label className="form-label">Keterangan</label>
@@ -238,8 +239,8 @@ function FormTxnDivisiSheet({
           )}
 
           <div className="form-group">
-            <label className="form-label">Jumlah (Rp)</label>
-            <input className="form-input" type="number" inputMode="numeric" placeholder="0" value={jumlah} onChange={e => setJumlah(e.target.value)} required min="1" />
+            <label className="form-label">Jumlah</label>
+            <RupiahInput value={jumlah} onChange={setJumlah} required />
           </div>
 
           <div className="form-group">
