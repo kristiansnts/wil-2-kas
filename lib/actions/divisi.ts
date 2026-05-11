@@ -10,7 +10,7 @@ export async function getDivisionData(id: string) {
     where: { id },
     include: {
       transactions: { orderBy: { date: 'desc' } },
-      events: { orderBy: { date: 'asc' } },
+      events: { orderBy: { date: 'desc' } },
     },
   })
   if (!division) return null

@@ -329,10 +329,15 @@ export default function KasUmumClient({ balance, divisions, transactions }: Prop
   const today = todayStr()
   const [sheet, setSheet] = useState<SheetState>(null)
   const [editTxn, setEditTxn] = useState<TxnUmumItem | null>(null)
+  const [page, setPage] = useState(0)
   const [isPending, startTransition] = useTransition()
 
   const totalMasuk = transactions.filter(t => t.type === 'masuk').reduce((s, t) => s + t.amount, 0)
   const totalKeluar = transactions.filter(t => t.type === 'keluar').reduce((s, t) => s + t.amount, 0)
+
+  const PAGE_SIZE = 10
+  const totalPages = Math.ceil(transactions.length / PAGE_SIZE)
+  const pagedTxns = transactions.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
   function handleSaveTxn(payload: Parameters<typeof addTxnUmum>[0]) {
     startTransition(async () => {
@@ -441,9 +446,25 @@ export default function KasUmumClient({ balance, divisions, transactions }: Prop
                 <div className="empty-text">Belum ada transaksi</div>
               </div>
             ) : (
-              transactions.slice(0, 5).map(txn => <TxnRow key={txn.id} txn={txn} onEdit={() => setEditTxn(txn)} onDelete={() => handleDeleteTxn(txn)} isPending={isPending} />)
+              pagedTxns.map(txn => <TxnRow key={txn.id} txn={txn} onEdit={() => setEditTxn(txn)} onDelete={() => handleDeleteTxn(txn)} isPending={isPending} />)
             )}
           </div>
+
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, gap: 8 }}>
+              <button
+                onClick={() => setPage(p => p - 1)}
+                disabled={page === 0}
+                style={{ fontSize: 13, padding: '7px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1 }}
+              >← Prev</button>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>{page + 1} / {totalPages}</span>
+              <button
+                onClick={() => setPage(p => p + 1)}
+                disabled={page >= totalPages - 1}
+                style={{ fontSize: 13, padding: '7px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', cursor: page >= totalPages - 1 ? 'default' : 'pointer', opacity: page >= totalPages - 1 ? 0.4 : 1 }}
+              >Next →</button>
+            </div>
+          )}
         </div>
 
         <div>

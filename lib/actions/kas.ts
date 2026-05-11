@@ -16,7 +16,6 @@ export async function getKasUmumData() {
     prisma.transaction.findMany({
       where: { scope: 'umum' },
       orderBy: { date: 'desc' },
-      take: 20,
     }),
     prisma.activityLog.findMany({ orderBy: { createdAt: 'desc' }, take: 100 }),
   ])

@@ -253,7 +253,7 @@ function FormTxnDivisiSheet({
             <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
           </div>
 
-          <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
+          <button type="submit" className="submit-btn" disabled={isPending || (kategori === 'event' && !eventId)} style={{ marginTop: 4 }}>
             {isPending ? 'Menyimpan...' : 'Simpan'}
           </button>
         </form>
@@ -395,6 +395,7 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
   const [editEvent, setEditEvent] = useState<EventItem | null>(null)
   const [tab, setTab] = useState<TabState>('semua')
   const [selectedEventId, setSelectedEventId] = useState(division.events[0]?.id ?? '')
+  const [page, setPage] = useState(0)
   const [isPending, startTransition] = useTransition()
 
   const today = todayStr()
@@ -406,6 +407,13 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
     if (tab === 'event') return txns.filter(t => t.kategori === 'event' && t.eventId === selectedEventId)
     return txns
   }, [tab, txns, selectedEventId])
+
+  const PAGE_SIZE = 10
+  const totalPages = Math.ceil(filteredTxns.length / PAGE_SIZE)
+  const pagedTxns = filteredTxns.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
+  function changeTab(next: TabState) { setTab(next); setPage(0) }
+  function changeEvent(id: string) { setSelectedEventId(id); setPage(0) }
 
   const totalMasuk = txns.filter(t => t.type === 'masuk').reduce((s, t) => s + t.amount, 0)
   const totalKeluar = txns.filter(t => t.type === 'keluar').reduce((s, t) => s + t.amount, 0)
@@ -530,9 +538,16 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
 
         {events.length > 0 && (
           <div>
-            <div className="section-title" style={{ marginBottom: 10 }}>Event Aktif</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div className="section-title">Event Aktif</div>
+              {events.length > 3 && (
+                <Link href={`/divisi/${division.id}/event`} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none' }}>
+                  Lihat Semua ({events.length})
+                </Link>
+              )}
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {events.map(ev => {
+              {events.slice(0, 3).map(ev => {
                 const spent = txns.filter(t => t.eventId === ev.id && t.type === 'keluar').reduce((s, t) => s + t.amount, 0)
                 return (
                   <EventCard
@@ -554,14 +569,14 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
         <div>
           <div className="section-title" style={{ marginBottom: 10 }}>Riwayat Transaksi</div>
           <div className="tabs" style={{ marginBottom: 10 }}>
-            <button className={`tab-btn ${tab === 'semua' ? 'active' : ''}`} onClick={() => setTab('semua')}>Semua</button>
-            <button className={`tab-btn ${tab === 'harian' ? 'active' : ''}`} onClick={() => setTab('harian')}>Harian</button>
-            <button className={`tab-btn ${tab === 'event' ? 'active' : ''}`} onClick={() => setTab('event')}>Event</button>
+            <button className={`tab-btn ${tab === 'semua' ? 'active' : ''}`} onClick={() => changeTab('semua')}>Semua</button>
+            <button className={`tab-btn ${tab === 'harian' ? 'active' : ''}`} onClick={() => changeTab('harian')}>Harian</button>
+            <button className={`tab-btn ${tab === 'event' ? 'active' : ''}`} onClick={() => changeTab('event')}>Event</button>
           </div>
 
           {tab === 'event' && events.length > 0 && (
             <div style={{ marginBottom: 10 }}>
-              <select className="form-select" value={selectedEventId} onChange={e => setSelectedEventId(e.target.value)}>
+              <select className="form-select" value={selectedEventId} onChange={e => changeEvent(e.target.value)}>
                 {events.map(ev => <option key={ev.id} value={ev.id}>{ev.name} — {fmtDate(ev.date)}</option>)}
               </select>
             </div>
@@ -574,11 +589,27 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
                 <div className="empty-text">Belum ada transaksi</div>
               </div>
             ) : (
-              filteredTxns.map(txn => (
+              pagedTxns.map(txn => (
                 <TxnRow key={txn.id} txn={txn} eventName={getEventName(txn.eventId)} onEdit={() => setEditTxn(txn)} onDelete={() => handleDeleteTxn(txn)} isPending={isPending} />
               ))
             )}
           </div>
+
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, gap: 8 }}>
+              <button
+                onClick={() => setPage(p => p - 1)}
+                disabled={page === 0}
+                style={{ fontSize: 13, padding: '7px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.4 : 1 }}
+              >← Prev</button>
+              <span style={{ fontSize: 13, color: 'var(--muted)' }}>{page + 1} / {totalPages}</span>
+              <button
+                onClick={() => setPage(p => p + 1)}
+                disabled={page >= totalPages - 1}
+                style={{ fontSize: 13, padding: '7px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', cursor: page >= totalPages - 1 ? 'default' : 'pointer', opacity: page >= totalPages - 1 ? 0.4 : 1 }}
+              >Next →</button>
+            </div>
+          )}
         </div>
 
         <div style={{ height: 20 }} />
