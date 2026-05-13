@@ -13,6 +13,7 @@ export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   if (pathname.startsWith('/login')) return NextResponse.next()
+  if (pathname.startsWith('/meeting/')) return NextResponse.next()
 
   const session = parseSession(req)
   if (!session) return NextResponse.redirect(new URL('/login', req.url))

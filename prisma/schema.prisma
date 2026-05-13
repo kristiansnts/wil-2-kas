@@ -57,3 +57,45 @@ model ActivityLog {
   divisionId String?
   createdAt  DateTime @default(now())
 }
+
+model Pastor {
+  id          String             @id @default(cuid())
+  name        String
+  title       String
+  status      String
+  pelayanan   String?
+  createdAt   DateTime           @default(now())
+  submissions PastorSubmission[]
+}
+
+model Meeting {
+  id          String             @id @default(cuid())
+  token       String             @unique @default(cuid())
+  month       String
+  deadline    DateTime
+  status      String             @default("open")
+  createdAt   DateTime           @default(now())
+  submissions PastorSubmission[]
+}
+
+model PastorSubmission {
+  id           String       @id @default(cuid())
+  meetingId    String
+  meeting      Meeting      @relation(fields: [meetingId], references: [id])
+  pastorId     String
+  pastor       Pastor       @relation(fields: [pastorId], references: [id])
+  persepuluhan Int          @default(0)
+  bulan        Int          @default(1)
+  status       String       @default("pending")
+  ipAddress    String?
+  submittedAt  DateTime     @default(now())
+  wadahEntries WadahEntry[]
+}
+
+model WadahEntry {
+  id           String           @id @default(cuid())
+  submissionId String
+  submission   PastorSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  divisionId   String
+  amount       Int
+}

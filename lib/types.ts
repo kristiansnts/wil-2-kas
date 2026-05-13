@@ -41,6 +41,60 @@ export interface DivisionData extends DivisionItem {
   events: EventItem[]
 }
 
+export type PastorTitle = 'pdp' | 'pdm' | 'pdt'
+export type PastorStatus = 'active' | 'inactive' | 'on_hold'
+
+export interface PastorItem {
+  id: string
+  name: string
+  title: PastorTitle
+  status: PastorStatus
+  pelayanan: string | null
+  createdAt: string
+}
+
+export type MeetingStatus = 'open' | 'closed'
+export type SubmissionStatus = 'pending' | 'approved'
+
+export interface MeetingItem {
+  id: string
+  token: string
+  month: string
+  deadline: string
+  status: MeetingStatus
+  createdAt: string
+  _count: { submissions: number }
+}
+
+export interface WadahEntryItem {
+  divisionId: string
+  divisionName: string
+  amount: number
+}
+
+export interface SubmissionItem {
+  id: string
+  pastorId: string
+  pastorName: string
+  pastorTitle: PastorTitle
+  pastorPelayanan: string | null
+  persepuluhan: number
+  bulan: number
+  status: SubmissionStatus
+  submittedAt: string
+  wadahEntries: WadahEntryItem[]
+}
+
+export interface MeetingDetailData {
+  id: string
+  token: string
+  month: string
+  deadline: string
+  status: MeetingStatus
+  submissions: SubmissionItem[]
+  allPastorCount: number
+}
+
 export interface LogItem {
   id: string
   action: string

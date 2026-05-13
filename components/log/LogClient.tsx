@@ -32,6 +32,7 @@ function entityLabel(entity: string): string {
     transaksi_divisi: 'Kas Komisi',
     komisi: 'Komisi',
     event: 'Event',
+    pastor: 'Pendeta',
   }
   return map[entity] ?? entity
 }

@@ -374,9 +374,7 @@ export default function KasUmumClient({ balance, divisions, transactions }: Prop
           <div className="topnav-title">Kas Umum</div>
           <div className="topnav-sub">Bendahara Umum · {fmtDate(today)}</div>
         </div>
-        <Link href="/log" style={{
-          fontSize: 13, color: 'var(--muted)', padding: '6px 8px',
-        }}>Log</Link>
+        <Link href="/log" style={{ fontSize: 13, color: 'var(--muted)', padding: '6px 8px' }}>Log</Link>
         <form action={logout}>
           <button type="submit" style={{
             background: 'none', border: 'none', cursor: 'pointer',
@@ -434,6 +432,16 @@ export default function KasUmumClient({ balance, divisions, transactions }: Prop
             <div className="action-label">Buat Komisi</div>
           </button>
         </div>
+
+        <Link href="/pertemuan" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, textDecoration: 'none', color: 'inherit' }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>Pertemuan Wilayah</div>
+            <div style={{ fontSize: 12, color: 'var(--text-sub)', marginTop: 2 }}>Kelola pertemuan bulanan pendeta</div>
+          </div>
+          <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-sub)', flexShrink: 0 }}>
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </Link>
 
         <div>
           <div className="section-header">

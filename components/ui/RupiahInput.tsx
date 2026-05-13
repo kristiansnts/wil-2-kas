@@ -3,6 +3,7 @@
 interface Props {
   value: string
   onChange: (raw: string) => void
+  onFocus?: () => void
   required?: boolean
   className?: string
 }
@@ -13,7 +14,7 @@ function fmtDisplay(raw: string): string {
   return 'Rp ' + digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 }
 
-export function RupiahInput({ value, onChange, required, className = 'form-input' }: Props) {
+export function RupiahInput({ value, onChange, onFocus, required, className = 'form-input' }: Props) {
   return (
     <input
       className={className}
@@ -22,6 +23,7 @@ export function RupiahInput({ value, onChange, required, className = 'form-input
       placeholder="Rp 0"
       value={fmtDisplay(value)}
       onChange={e => onChange(e.target.value.replace(/\D/g, ''))}
+      onFocus={onFocus}
       required={required}
     />
   )
