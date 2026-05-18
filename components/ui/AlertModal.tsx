@@ -5,19 +5,23 @@ import { useEffect, useRef } from 'react'
 interface Props {
   message: string
   onClose: () => void
+  onConfirm?: () => void
+  confirmLabel?: string
 }
 
-export function AlertModal({ message, onClose }: Props) {
+export function AlertModal({ message, onClose, onConfirm, confirmLabel = 'Ya, Setujui' }: Props) {
   const btnRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     btnRef.current?.focus()
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' || e.key === 'Enter') onClose()
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'Enter' && onConfirm) onConfirm()
+      if (e.key === 'Enter' && !onConfirm) onClose()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  }, [onClose, onConfirm])
 
   return (
     <div
@@ -31,14 +35,32 @@ export function AlertModal({ message, onClose }: Props) {
         <div style={{ padding: '24px 24px 18px', fontSize: 18, lineHeight: 1.55, color: 'var(--text)' }}>
           {message}
         </div>
-        <div style={{ borderTop: '1px solid var(--border)' }}>
-          <button
-            ref={btnRef}
-            onClick={onClose}
-            style={{ width: '100%', padding: '15px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, fontWeight: 600, color: 'var(--accent)', fontFamily: 'inherit' }}
-          >
-            OK
-          </button>
+        <div style={{ borderTop: '1px solid var(--border)', display: 'flex' }}>
+          {onConfirm ? (
+            <>
+              <button
+                onClick={onClose}
+                style={{ flex: 1, padding: '15px', background: 'none', border: 'none', borderRight: '1px solid var(--border)', cursor: 'pointer', fontSize: 17, fontWeight: 600, color: 'var(--text-sub)', fontFamily: 'inherit' }}
+              >
+                Batal
+              </button>
+              <button
+                ref={btnRef}
+                onClick={onConfirm}
+                style={{ flex: 1, padding: '15px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, fontWeight: 600, color: 'var(--accent)', fontFamily: 'inherit' }}
+              >
+                {confirmLabel}
+              </button>
+            </>
+          ) : (
+            <button
+              ref={btnRef}
+              onClick={onClose}
+              style={{ flex: 1, padding: '15px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 17, fontWeight: 600, color: 'var(--accent)', fontFamily: 'inherit' }}
+            >
+              OK
+            </button>
+          )}
         </div>
       </div>
     </div>

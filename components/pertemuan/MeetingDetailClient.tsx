@@ -7,6 +7,7 @@ import { closeMeeting } from '@/lib/actions/meeting'
 import { RupiahInput } from '@/components/ui/RupiahInput'
 import { AlertModal } from '@/components/ui/AlertModal'
 import type { MeetingDetailData, SubmissionItem } from '@/lib/types'
+import { fmtDate } from '@/lib/format'
 
 const MONTHS_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
 const TITLE_LABEL: Record<string, string> = { pdp: 'PDP', pdm: 'PDM', pdt: 'PDT' }
@@ -174,7 +175,25 @@ interface Props { meeting: MeetingDetailData }
 export default function MeetingDetailClient({ meeting }: Props) {
   const [viewSub, setViewSub] = useState<SubmissionItem | null>(null)
   const [editSub, setEditSub] = useState<SubmissionItem | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [confirmApproveAll, setConfirmApproveAll] = useState(false)
+  const [showExportModal, setShowExportModal] = useState(false)
   const [isPending, startTransition] = useTransition()
+
+  const pendingIds = meeting.submissions.filter(s => s.status === 'pending').map(s => s.id)
+  const allPendingSelected = pendingIds.length > 0 && pendingIds.every(id => selected.has(id))
+
+  function toggleAll() {
+    setSelected(allPendingSelected ? new Set() : new Set(pendingIds))
+  }
+
+  function toggleOne(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   const allWadahIds = [...new Set(meeting.submissions.flatMap(s => s.wadahEntries.map(w => w.divisionId)))]
   const allWadahMap = new Map<string, string>()
@@ -187,6 +206,18 @@ export default function MeetingDetailClient({ meeting }: Props) {
     startTransition(async () => {
       await approveSubmission(sub.id)
       setViewSub(null)
+    })
+  }
+
+  function handleApproveSelected() {
+    const ids = [...selected].filter(id => {
+      const sub = meeting.submissions.find(s => s.id === id)
+      return sub?.status === 'pending'
+    })
+    if (ids.length === 0) return
+    startTransition(async () => {
+      for (const id of ids) await approveSubmission(id)
+      setSelected(new Set())
     })
   }
 
@@ -220,7 +251,16 @@ export default function MeetingDetailClient({ meeting }: Props) {
           <div className="topnav-sub">{meeting.submissions.length} / {meeting.allPastorCount} pendeta</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-          <a href={`/api/pertemuan/${meeting.id}/export`} style={{ fontSize: 12, color: 'var(--accent)', padding: '6px 8px', textDecoration: 'none', fontWeight: 600 }}>XLSX</a>
+          {selected.size > 0 && (
+            <button
+              onClick={() => setConfirmApproveAll(true)}
+              disabled={isPending}
+              style={{ fontSize: 12, color: '#fff', background: 'var(--accent)', border: 'none', cursor: 'pointer', padding: '6px 10px', fontWeight: 600, borderRadius: 8 }}
+            >
+              {isPending ? '...' : `Setujui ${selected.size}`}
+            </button>
+          )}
+          <button onClick={() => setShowExportModal(true)} style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', fontWeight: 600 }}>XLSX</button>
           {meeting.status === 'open' && (
             <button onClick={handleClose} disabled={isPending} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', fontWeight: 600 }}>
               Tutup
@@ -230,6 +270,31 @@ export default function MeetingDetailClient({ meeting }: Props) {
       </div>
 
       <div className="content">
+        {meeting.setorDate && (
+          <div className="card" style={{ marginBottom: 0, padding: '14px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: meeting.setorItems.length > 0 ? 10 : 0 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-sub)' }}>SETOR KAS MD</span>
+              <span style={{ fontSize: 13, color: 'var(--text-sub)' }}>
+                {fmtDate(meeting.setorDate)}
+              </span>
+            </div>
+            {meeting.setorItems.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                {meeting.setorItems.map(item => (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-sub)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{item.desc}</span>
+                    <span style={{ fontSize: 12, color: 'var(--red)', whiteSpace: 'nowrap', flexShrink: 0 }}>− {fmt(item.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: meeting.setorItems.length > 0 ? '1px solid var(--border)' : undefined, paddingTop: meeting.setorItems.length > 0 ? 10 : 0 }}>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>Net Setor</span>
+              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>{fmt(meeting.setorNetAmount ?? 0)}</span>
+            </div>
+          </div>
+        )}
+
         {meeting.submissions.length === 0 ? (
           <div className="card">
             <div className="empty">
@@ -242,13 +307,34 @@ export default function MeetingDetailClient({ meeting }: Props) {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ padding: '10px 12px', width: 36 }}>
+                    <input
+                      type="checkbox"
+                      checked={allPendingSelected}
+                      disabled={pendingIds.length === 0}
+                      onChange={toggleAll}
+                      style={{ cursor: pendingIds.length > 0 ? 'pointer' : 'default', width: 15, height: 15 }}
+                    />
+                  </th>
                   <th style={{ padding: '10px 16px', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'var(--text-sub)', whiteSpace: 'nowrap' }}>NAMA</th>
                   <th style={{ padding: '10px 16px', textAlign: 'right', fontSize: 12, fontWeight: 600, color: 'var(--text-sub)' }}>AKSI</th>
                 </tr>
               </thead>
               <tbody>
                 {meeting.submissions.map((sub, i) => (
-                  <tr key={sub.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined }}>
+                  <tr key={sub.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined, opacity: isPending && selected.has(sub.id) ? 0.5 : 1 }}>
+                    <td style={{ padding: '12px 12px', width: 36 }}>
+                      {sub.status === 'pending' ? (
+                        <input
+                          type="checkbox"
+                          checked={selected.has(sub.id)}
+                          onChange={() => toggleOne(sub.id)}
+                          style={{ cursor: 'pointer', width: 15, height: 15 }}
+                        />
+                      ) : (
+                        <span style={{ fontSize: 13, color: 'var(--accent)' }}>✓</span>
+                      )}
+                    </td>
                     <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
                       <span style={{ fontWeight: 500 }}>{sub.pastorName}</span>
                       {' '}
@@ -289,6 +375,50 @@ export default function MeetingDetailClient({ meeting }: Props) {
           onSave={handleEdit}
           isPending={isPending}
         />
+      )}
+      {confirmApproveAll && (
+        <AlertModal
+          message={`Setujui ${selected.size} submission sekaligus?`}
+          confirmLabel="Ya, Setujui"
+          onClose={() => setConfirmApproveAll(false)}
+          onConfirm={() => { setConfirmApproveAll(false); handleApproveSelected() }}
+        />
+      )}
+      {showExportModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setShowExportModal(false)}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', width: '100%', maxWidth: 300, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>Unduh Excel</div>
+            </div>
+            <a
+              href={`/api/pertemuan/${meeting.id}/export?type=md`}
+              onClick={() => setShowExportModal(false)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'inherit' }}
+            >
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Persepuluhan MD</span>
+              <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>↓ .xlsx</span>
+            </a>
+            <a
+              href={`/api/pertemuan/${meeting.id}/export?type=kesehatan`}
+              onClick={() => setShowExportModal(false)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'inherit' }}
+            >
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Dana Kesejahteraan</span>
+              <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>↓ .xlsx</span>
+            </a>
+            <a
+              href={`/api/pertemuan/${meeting.id}/export?type=all`}
+              onClick={() => setShowExportModal(false)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', textDecoration: 'none', color: 'inherit' }}
+            >
+              <span style={{ fontWeight: 600, fontSize: 14 }}>Laporan Lengkap</span>
+              <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>↓ .xlsx</span>
+            </a>
+          </div>
+        </div>
       )}
     </div>
   )

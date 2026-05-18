@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { fmt, fmtDate } from '@/lib/format'
+import { DateInput } from '@/components/ui/DateInput'
 
 interface TxnRow {
   id: string
@@ -37,6 +38,18 @@ interface Props {
   fixedDivisionId: string | null
 }
 
+function getPageWindow(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+  const set = new Set([1, total, current, current - 1, current + 1].filter(n => n >= 1 && n <= total))
+  const sorted = [...set].sort((a, b) => a - b)
+  const result: (number | '…')[] = []
+  for (let i = 0; i < sorted.length; i++) {
+    if (i > 0 && sorted[i] - sorted[i - 1] > 1) result.push('…')
+    result.push(sorted[i])
+  }
+  return result
+}
+
 function PrintIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -66,6 +79,20 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
   const [dateFrom, setDateFrom] = useState(monthStart)
   const [dateTo, setDateTo] = useState(today)
   const [search, setSearch] = useState('')
+  const [includeDK, setIncludeDK] = useState(true)
+  const [sortCol, setSortCol] = useState<'date' | 'amount'>('date')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+  const [page, setPage] = useState(1)
+
+  function toggleSort(col: 'date' | 'amount') {
+    if (sortCol === col) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortCol(col)
+      setSortDir(col === 'amount' ? 'desc' : 'desc')
+    }
+    setPage(1)
+  }
 
   // Determine which division context is active for event filtering
   const activeDivisionId = useMemo(() => {
@@ -84,11 +111,18 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
   // Reset event filter when visible events change
   const filteredEventId = visibleEvents.some(e => e.id === filterEvent) ? filterEvent : 'all'
 
+  const PAGE_SIZE = 10
+
+  const isDK = (t: TxnRow) =>
+    t.desc.startsWith('Persepuluhan ') || t.desc.startsWith('Wadah ')
+
   const filtered = useMemo(() => {
+    setPage(1)
     return transactions.filter(t => {
       const d = t.date.slice(0, 10)
       if (dateFrom && d < dateFrom) return false
       if (dateTo && d > dateTo) return false
+      if (!includeDK && isDK(t)) return false
       if (filterType !== 'all' && t.type !== filterType) return false
       if (filterScope !== 'all' && t.scope !== filterScope) return false
       if (isAdmin && filterDiv !== 'all') {
@@ -102,11 +136,23 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
       }
       return true
     })
-  }, [transactions, dateFrom, dateTo, filterType, filterScope, filterDiv, filteredEventId, search, isAdmin])
+  }, [transactions, dateFrom, dateTo, includeDK, filterType, filterScope, filterDiv, filteredEventId, search, isAdmin])
 
   const totalMasuk = filtered.filter(t => t.type === 'masuk').reduce((s, t) => s + t.amount, 0)
   const totalKeluar = filtered.filter(t => t.type === 'keluar').reduce((s, t) => s + t.amount, 0)
   const saldo = totalMasuk - totalKeluar
+
+  const sorted = useMemo(() => {
+    const mul = sortDir === 'asc' ? 1 : -1
+    return [...filtered].sort((a, b) => {
+      if (sortCol === 'amount') return (a.amount - b.amount) * mul
+      return a.date.localeCompare(b.date) * mul
+    })
+  }, [filtered, sortCol, sortDir])
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const fixedDiv = fixedDivisionId ? divisions.find(d => d.id === fixedDivisionId) : null
   const pageTitle = fixedDiv ? `Laporan – ${fixedDiv.name}` : 'Laporan Keuangan'
@@ -150,15 +196,13 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
         <div className="content">
           {/* Filters */}
           <div className="card no-print" style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Dari</label>
-                <input type="date" className="form-input" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-              </div>
-              <div className="form-group" style={{ flex: 1 }}>
-                <label className="form-label">Sampai</label>
-                <input type="date" className="form-input" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-              </div>
+            <div className="form-group">
+              <label className="form-label">Dari</label>
+              <DateInput className="form-input" value={dateFrom} onChange={setDateFrom} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Sampai</label>
+              <DateInput className="form-input" value={dateTo} onChange={setDateTo} />
             </div>
 
             <div className="seg-control">
@@ -213,6 +257,22 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
+
+            <button
+              type="button"
+              onClick={() => setIncludeDK(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                fontSize: 13, color: '#1c1917', textAlign: 'left',
+              }}
+            >
+              <span
+                className={`toggle${includeDK ? ' on' : ''}`}
+                style={{ flexShrink: 0 }}
+              />
+              <span>Termasuk Dana Kesejahteraan</span>
+            </button>
           </div>
 
           {/* Summary */}
@@ -241,16 +301,26 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
               <table className="laporan-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
-                    <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Tanggal</th>
+                    <th
+                      onClick={() => toggleSort('date')}
+                      style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: sortCol === 'date' ? '#1c1917' : 'var(--muted)', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      Tanggal {sortCol === 'date' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                    </th>
                     <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)' }}>Deskripsi</th>
                     {isAdmin && (
                       <th style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Sumber</th>
                     )}
-                    <th style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: 'var(--muted)', whiteSpace: 'nowrap' }}>Jumlah</th>
+                    <th
+                      onClick={() => toggleSort('amount')}
+                      style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 600, color: sortCol === 'amount' ? '#1c1917' : 'var(--muted)', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}
+                    >
+                      Jumlah {sortCol === 'amount' ? (sortDir === 'asc' ? '↑' : '↓') : ''}
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((t, i) => (
+                  {paginated.map((t, i) => (
                     <tr key={t.id} style={{ borderTop: i > 0 ? '1px solid var(--border)' : undefined }}>
                       <td style={{ padding: '10px 16px', whiteSpace: 'nowrap', color: 'var(--muted)' }}>{fmtDate(t.date)}</td>
                       <td style={{ padding: '10px 16px' }}>
@@ -280,6 +350,54 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
               </table>
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="no-print" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 4, paddingTop: 4, flexWrap: 'wrap' }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                style={{
+                  minWidth: 40, height: 40, border: '1px solid var(--border)', borderRadius: 10,
+                  background: 'none', cursor: safePage === 1 ? 'default' : 'pointer',
+                  color: safePage === 1 ? 'var(--muted)' : 'inherit', fontSize: 16,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                ‹
+              </button>
+              {getPageWindow(safePage, totalPages).map((n, i) =>
+                n === '…' ? (
+                  <span key={`ellipsis-${i}`} style={{ color: 'var(--muted)', fontSize: 13, padding: '0 2px', lineHeight: '40px' }}>…</span>
+                ) : (
+                  <button
+                    key={n}
+                    onClick={() => setPage(n as number)}
+                    style={{
+                      minWidth: 40, height: 40, border: '1px solid var(--border)', borderRadius: 10,
+                      background: safePage === n ? 'var(--accent)' : 'none',
+                      color: safePage === n ? '#fff' : 'inherit',
+                      cursor: 'pointer', fontSize: 13, fontWeight: safePage === n ? 600 : 400,
+                    }}
+                  >
+                    {n}
+                  </button>
+                )
+              )}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                style={{
+                  minWidth: 40, height: 40, border: '1px solid var(--border)', borderRadius: 10,
+                  background: 'none', cursor: safePage === totalPages ? 'default' : 'pointer',
+                  color: safePage === totalPages ? 'var(--muted)' : 'inherit', fontSize: 16,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                ›
+              </button>
+            </div>
+          )}
 
           <div style={{ height: 16 }} />
         </div>

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import type { MeetingItem, MeetingDetailData, SubmissionItem, WadahEntryItem, PastorTitle } from '@/lib/types'
+import type { MeetingItem, MeetingDetailData, SubmissionItem, WadahEntryItem, SetorBantuanItem, PastorTitle } from '@/lib/types'
 
 export async function getMeetings(): Promise<MeetingItem[]> {
   const rows = await prisma.meeting.findMany({
@@ -83,6 +83,7 @@ export async function getMeetingDetail(id: string): Promise<MeetingDetailData | 
         },
         orderBy: { submittedAt: 'asc' },
       },
+      setorItems: { orderBy: { id: 'asc' } },
     },
   })
   if (!meeting) return null
@@ -122,5 +123,8 @@ export async function getMeetingDetail(id: string): Promise<MeetingDetailData | 
     status: meeting.status as MeetingDetailData['status'],
     submissions,
     allPastorCount: totalActivePastors,
+    setorDate: meeting.setorDate?.toISOString() ?? null,
+    setorNetAmount: meeting.setorNetAmount ?? null,
+    setorItems: meeting.setorItems.map(i => ({ id: i.id, desc: i.desc, amount: i.amount } satisfies SetorBantuanItem)),
   }
 }

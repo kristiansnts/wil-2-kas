@@ -4,6 +4,12 @@ import { revalidatePath } from 'next/cache'
 import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { fmtShort } from '@/lib/format'
+import { getSession } from '@/lib/session'
+
+async function requireDivisi() {
+  const session = await getSession()
+  if (!session || session.role !== 'division') throw new Error('Unauthorized')
+}
 
 export async function getDivisionData(id: string) {
   const division = await prisma.division.findUnique({
@@ -30,6 +36,7 @@ export async function addTxnDivisi(payload: {
   desc: string
   date: string
 }) {
+  await requireDivisi()
   const { divisionId, type, kategori, eventId, amount, desc, date } = payload
   const delta = type === 'masuk' ? amount : -amount
 
@@ -71,6 +78,7 @@ export async function updateTxnDivisi(
   oldType: 'masuk' | 'keluar',
   payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string; kategori: 'harian' | 'event'; eventId?: string },
 ) {
+  await requireDivisi()
   const reverseOld = oldType === 'masuk' ? -oldAmount : oldAmount
   const applyNew = payload.type === 'masuk' ? payload.amount : -payload.amount
 
@@ -105,6 +113,7 @@ export async function updateTxnDivisi(
 }
 
 export async function deleteTxnDivisi(id: string, divisionId: string, amount: number, type: 'masuk' | 'keluar') {
+  await requireDivisi()
   const delta = type === 'masuk' ? -amount : amount
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -133,6 +142,7 @@ export async function addEvent(payload: {
   name: string
   date: string
 }) {
+  await requireDivisi()
   const { divisionId, name, date } = payload
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -154,6 +164,7 @@ export async function addEvent(payload: {
 }
 
 export async function updateEvent(id: string, divisionId: string, name: string, date: string) {
+  await requireDivisi()
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.event.update({ where: { id }, data: { name, date: new Date(date) } })
     await tx.activityLog.create({
@@ -170,6 +181,7 @@ export async function updateEvent(id: string, divisionId: string, name: string, 
 }
 
 export async function deleteEvent(id: string, divisionId: string) {
+  await requireDivisi()
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const event = await tx.event.findUnique({ where: { id }, select: { name: true } })
     await tx.transaction.updateMany({ where: { eventId: id }, data: { eventId: null } })

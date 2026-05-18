@@ -81,24 +81,26 @@ export async function approveSubmission(submissionId: string): Promise<void> {
   const titleLabel = TITLE_LABEL[sub.pastor.title] ?? sub.pastor.title.toUpperCase()
   const today = new Date()
 
+  const kas15 = Math.round(sub.persepuluhan * 0.15)
+
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.pastorSubmission.update({ where: { id: submissionId }, data: { status: 'approved' } })
 
-    if (sub.persepuluhan > 0) {
+    if (kas15 > 0) {
       await tx.kasUmum.upsert({
         where: { id: 'singleton' },
-        create: { id: 'singleton', balance: sub.persepuluhan },
-        update: { balance: { increment: sub.persepuluhan } },
+        create: { id: 'singleton', balance: kas15 },
+        update: { balance: { increment: kas15 } },
       })
       const desc = `Persepuluhan ${sub.pastor.name} (${titleLabel}) - ${monthLabel} (${sub.bulan} bln)`
       await tx.transaction.create({
-        data: { date: today, desc, amount: sub.persepuluhan, type: 'masuk', scope: 'umum' },
+        data: { date: today, desc, amount: kas15, type: 'masuk', scope: 'umum' },
       })
       await tx.activityLog.create({
         data: {
           action: 'tambah',
           entity: 'transaksi_umum',
-          desc: `Pemasukan ${fmtShort(sub.persepuluhan)}: ${desc}`,
+          desc: `Pemasukan ${fmtShort(kas15)}: ${desc}`,
           actorRole: 'admin',
           divisionId: null,
         },

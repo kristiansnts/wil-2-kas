@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
 import { fmtShort, fmtDate, todayStr } from '@/lib/format'
 import { addEvent, updateEvent, deleteEvent } from '@/lib/actions/divisi'
+import { DateInput } from '@/components/ui/DateInput'
 import type { EventItem } from '@/lib/types'
 
 interface TxnMin { eventId: string | null; type: 'masuk' | 'keluar'; amount: number }
@@ -110,7 +111,7 @@ function FormEventSheet({ onClose, onSave, isPending }: {
           </div>
           <div className="form-group">
             <label className="form-label">Tanggal Event</label>
-            <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+            <DateInput className="form-input" value={tanggal} onChange={setTanggal} required />
           </div>
           <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
             {isPending ? 'Membuat...' : 'Buat Event'}
@@ -151,7 +152,7 @@ function FormEditEventSheet({ ev, onClose, onSave, isPending }: {
           </div>
           <div className="form-group">
             <label className="form-label">Tanggal Event</label>
-            <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+            <DateInput className="form-input" value={tanggal} onChange={setTanggal} required />
           </div>
           <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
             {isPending ? 'Menyimpan...' : 'Simpan Perubahan'}

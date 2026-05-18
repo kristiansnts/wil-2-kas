@@ -4,6 +4,7 @@ import { useState, useMemo, useTransition, useRef } from 'react'
 import Link from 'next/link'
 import { fmt, fmtShort, fmtDate, todayStr } from '@/lib/format'
 import { RupiahInput } from '@/components/ui/RupiahInput'
+import { DateInput } from '@/components/ui/DateInput'
 import { addTxnDivisi, addEvent, deleteTxnDivisi, updateTxnDivisi, updateEvent, deleteEvent } from '@/lib/actions/divisi'
 import { logout } from '@/lib/actions/auth'
 import type { DivisionData, TxnDivisiItem, EventItem } from '@/lib/types'
@@ -46,7 +47,7 @@ const btnIcon: React.CSSProperties = {
   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
 }
 
-function TxnRow({ txn, eventName, onEdit, onDelete, isPending }: { txn: TxnDivisiItem; eventName?: string; onEdit: () => void; onDelete: () => void; isPending: boolean }) {
+function TxnRow({ txn, eventName, onEdit, onDelete, isPending, readOnly }: { txn: TxnDivisiItem; eventName?: string; onEdit: () => void; onDelete: () => void; isPending: boolean; readOnly: boolean }) {
   const [confirm, setConfirm] = useState(false)
   const isTransferFromUmum = txn.desc === 'Transfer dari Kas Umum'
   return (
@@ -61,7 +62,7 @@ function TxnRow({ txn, eventName, onEdit, onDelete, isPending }: { txn: TxnDivis
           {isTransferFromUmum && <span className="badge transfer">dari kas umum</span>}
         </div>
       </div>
-      {isTransferFromUmum ? (
+      {isTransferFromUmum || readOnly ? (
         <div className={`txn-amount ${txn.type}`}>
           {txn.type === 'masuk' ? '+' : '-'}{fmtShort(txn.amount)}
         </div>
@@ -160,7 +161,7 @@ function FormEditTxnDivisiSheet({ txn, events, onClose, onSave, isPending }: {
           </div>
           <div className="form-group">
             <label className="form-label">Tanggal</label>
-            <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+            <DateInput className="form-input" value={tanggal} onChange={setTanggal} required />
           </div>
           <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
             {isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
@@ -250,7 +251,7 @@ function FormTxnDivisiSheet({
 
           <div className="form-group">
             <label className="form-label">Tanggal</label>
-            <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+            <DateInput className="form-input" value={tanggal} onChange={setTanggal} required />
           </div>
 
           <button type="submit" className="submit-btn" disabled={isPending || (kategori === 'event' && !eventId)} style={{ marginTop: 4 }}>
@@ -295,7 +296,7 @@ function FormEventSheet({
           </div>
           <div className="form-group">
             <label className="form-label">Tanggal Event</label>
-            <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+            <DateInput className="form-input" value={tanggal} onChange={setTanggal} required />
           </div>
           <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
             {isPending ? 'Membuat...' : 'Buat Event'}
@@ -375,7 +376,7 @@ function FormEditEventSheet({ ev, onClose, onSave, isPending }: {
           </div>
           <div className="form-group">
             <label className="form-label">Tanggal Event</label>
-            <input className="form-input" type="date" value={tanggal} onChange={e => setTanggal(e.target.value)} required />
+            <DateInput className="form-input" value={tanggal} onChange={setTanggal} required />
           </div>
           <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
             {isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
@@ -590,7 +591,7 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
               </div>
             ) : (
               pagedTxns.map(txn => (
-                <TxnRow key={txn.id} txn={txn} eventName={getEventName(txn.eventId)} onEdit={() => setEditTxn(txn)} onDelete={() => handleDeleteTxn(txn)} isPending={isPending} />
+                <TxnRow key={txn.id} txn={txn} eventName={getEventName(txn.eventId)} onEdit={() => setEditTxn(txn)} onDelete={() => handleDeleteTxn(txn)} isPending={isPending} readOnly={readOnly} />
               ))
             )}
           </div>

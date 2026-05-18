@@ -11,8 +11,7 @@ export function fmtShort(n: number): string {
 export function fmtDate(d: string): string {
   const datePart = d.includes('T') ? d.split('T')[0] : d
   const [y, m, day] = datePart.split('-')
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-  return `${parseInt(day)} ${months[parseInt(m) - 1]} ${y}`
+  return `${day.padStart(2, '0')}/${m.padStart(2, '0')}/${y}`
 }
 
 export function initials(name: string): string {

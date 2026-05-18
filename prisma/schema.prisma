@@ -69,13 +69,24 @@ model Pastor {
 }
 
 model Meeting {
-  id          String             @id @default(cuid())
-  token       String             @unique @default(cuid())
-  month       String
-  deadline    DateTime
-  status      String             @default("open")
-  createdAt   DateTime           @default(now())
-  submissions PastorSubmission[]
+  id             String             @id @default(cuid())
+  token          String             @unique @default(cuid())
+  month          String
+  deadline       DateTime
+  status         String             @default("open")
+  createdAt      DateTime           @default(now())
+  submissions    PastorSubmission[]
+  setorDate      DateTime?
+  setorNetAmount Int?
+  setorItems     SetorBantuan[]
+}
+
+model SetorBantuan {
+  id        String  @id @default(cuid())
+  meetingId String
+  meeting   Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  desc      String
+  amount    Int
 }
 
 model PastorSubmission {

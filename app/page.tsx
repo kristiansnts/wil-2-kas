@@ -1,8 +1,18 @@
 import { getKasUmumData } from '@/lib/actions/kas'
+import { prisma } from '@/lib/prisma'
 import KasUmumClient from '@/components/kas/KasUmumClient'
 
 export default async function Page() {
-  const { kasUmum, divisions, transactions } = await getKasUmumData()
+  const [{ kasUmum, divisions, transactions }, meetings] = await Promise.all([
+    getKasUmumData(),
+    prisma.meeting.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        submissions: { where: { status: 'approved' }, select: { persepuluhan: true } },
+        setorItems: { orderBy: { id: 'asc' } },
+      },
+    }),
+  ])
 
   return (
     <KasUmumClient
@@ -15,6 +25,14 @@ export default async function Page() {
         amount: t.amount,
         type: t.type as 'masuk' | 'keluar',
         refDivId: t.refDivId,
+      }))}
+      meetings={meetings.map(m => ({
+        id: m.id,
+        month: m.month,
+        totalPersepuluhan: m.submissions.reduce((sum, s) => sum + s.persepuluhan, 0),
+        setorDate: m.setorDate?.toISOString() ?? null,
+        setorNetAmount: m.setorNetAmount ?? null,
+        setorItems: m.setorItems.map(i => ({ id: i.id, desc: i.desc, amount: i.amount })),
       }))}
     />
   )

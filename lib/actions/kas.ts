@@ -93,6 +93,30 @@ export async function addTxnUmum(payload: {
   revalidatePath('/')
 }
 
+export async function addSetorMD(payload: {
+  meetingId: string
+  setorNetAmount: number
+  date: string
+  items: { desc: string; amount: number }[]
+}) {
+  const { meetingId, setorNetAmount, date, items } = payload
+
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await tx.setorBantuan.deleteMany({ where: { meetingId } })
+    await tx.meeting.update({
+      where: { id: meetingId },
+      data: {
+        setorDate: new Date(date),
+        setorNetAmount,
+        setorItems: { create: items.map(i => ({ desc: i.desc, amount: i.amount })) },
+      },
+    })
+  })
+
+  revalidatePath('/')
+  revalidatePath(`/pertemuan/${meetingId}`)
+}
+
 export async function updateTxnUmum(
   id: string,
   oldAmount: number,

@@ -10,7 +10,16 @@
       "Bash(DATABASE_URL=\"postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require\" npx tsx _dbfix.ts)",
       "Bash(mkdir -p /Users/kristian/Documents/projects/wil-2-kas/app/divisi/\\\\[id\\\\]/event)",
       "Bash(mkdir -p /Users/kristian/Documents/projects/wil-2-kas/app/pertemuan/\\\\[id\\\\] /Users/kristian/Documents/projects/wil-2-kas/app/meeting/\\\\[token\\\\] /Users/kristian/Documents/projects/wil-2-kas/components/pertemuan /Users/kristian/Documents/projects/wil-2-kas/components/meeting /Users/kristian/Documents/projects/wil-2-kas/app/api/pertemuan/\\\\[id\\\\]/export)",
-      "Bash(node -e \"require\\('exceljs'\\); console.log\\('ok'\\)\")"
+      "Bash(node -e \"require\\('exceljs'\\); console.log\\('ok'\\)\")",
+      "Bash(chmod +x /Users/kristian/Documents/projects/wil-2-kas/scripts/seed-march-2026.sh)",
+      "Bash(psql \"postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require\" -c 'SELECT id, name, title, status FROM \"Pastor\" ORDER BY name;')",
+      "Bash(DATABASE_URL=postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require node -e ' *)",
+      "Bash(DATABASE_URL=postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require npx tsx -e ' *)",
+      "Bash(cat)",
+      "Bash(DATABASE_URL=\"postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require\" node /tmp/check-db.mjs)",
+      "Bash(DATABASE_URL=\"postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require\" node /tmp/verify.mjs)",
+      "Bash(DATABASE_URL=\"postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require\" node /tmp/reset-march.mjs)",
+      "Bash(node -e ' *)"
     ],
     "additionalDirectories": [
       "/Users/kristian/Documents/projects/wil-2-kas/app/divisi/[id]",

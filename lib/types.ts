@@ -85,6 +85,12 @@ export interface SubmissionItem {
   wadahEntries: WadahEntryItem[]
 }
 
+export interface SetorBantuanItem {
+  id: string
+  desc: string
+  amount: number
+}
+
 export interface MeetingDetailData {
   id: string
   token: string
@@ -93,6 +99,9 @@ export interface MeetingDetailData {
   status: MeetingStatus
   submissions: SubmissionItem[]
   allPastorCount: number
+  setorDate: string | null
+  setorNetAmount: number | null
+  setorItems: SetorBantuanItem[]
 }
 
 export interface LogItem {
