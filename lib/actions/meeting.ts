@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import type { MeetingItem, MeetingDetailData, SubmissionItem, WadahEntryItem, SetorBantuanItem, PastorTitle } from '@/lib/types'
+import type { MeetingItem, MeetingDetailData, SubmissionItem, WadahEntryItem, SetorBantuanItem, PastorTitle, AvailablePastorItem } from '@/lib/types'
 
 export async function getMeetings(): Promise<MeetingItem[]> {
   const rows = await prisma.meeting.findMany({
@@ -91,12 +91,25 @@ export async function getMeetingDetail(id: string): Promise<MeetingDetailData | 
   const divisionIds = [...new Set(
     meeting.submissions.flatMap(s => s.wadahEntries.map(w => w.divisionId))
   )]
-  const divisions = divisionIds.length
-    ? await prisma.division.findMany({ where: { id: { in: divisionIds } } })
-    : []
-  const divMap = new Map(divisions.map(d => [d.id, d.name]))
 
-  const totalActivePastors = await prisma.pastor.count({ where: { status: 'active' } })
+  const submittedPastorIds = new Set(meeting.submissions.map(s => s.pastorId))
+
+  const [divisions, allPastors, allDivisionsRaw] = await Promise.all([
+    divisionIds.length
+      ? prisma.division.findMany({ where: { id: { in: divisionIds } } })
+      : Promise.resolve([]),
+    prisma.pastor.findMany({ where: { status: 'active' }, orderBy: { name: 'asc' } }),
+    prisma.division.findMany({ orderBy: { name: 'asc' } }),
+  ])
+
+  const divMap = new Map(divisions.map(d => [d.id, d.name]))
+  const totalActivePastors = allPastors.length
+
+  const availablePastors: AvailablePastorItem[] = allPastors
+    .filter(p => !submittedPastorIds.has(p.id))
+    .map(p => ({ id: p.id, name: p.name, title: p.title as PastorTitle, pelayanan: p.pelayanan ?? null }))
+
+  const allDivisions = allDivisionsRaw.map(d => ({ id: d.id, name: d.name }))
 
   const submissions: SubmissionItem[] = meeting.submissions.map(s => ({
     id: s.id,
@@ -126,5 +139,7 @@ export async function getMeetingDetail(id: string): Promise<MeetingDetailData | 
     setorDate: meeting.setorDate?.toISOString() ?? null,
     setorNetAmount: meeting.setorNetAmount ?? null,
     setorItems: meeting.setorItems.map(i => ({ id: i.id, desc: i.desc, amount: i.amount } satisfies SetorBantuanItem)),
+    availablePastors,
+    allDivisions,
   }
 }

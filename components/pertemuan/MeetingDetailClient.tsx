@@ -2,11 +2,11 @@
 
 import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
-import { approveSubmission, editSubmission } from '@/lib/actions/submission'
+import { approveSubmission, editSubmission, adminAddSubmission } from '@/lib/actions/submission'
 import { closeMeeting } from '@/lib/actions/meeting'
 import { RupiahInput } from '@/components/ui/RupiahInput'
 import { AlertModal } from '@/components/ui/AlertModal'
-import type { MeetingDetailData, SubmissionItem } from '@/lib/types'
+import type { MeetingDetailData, SubmissionItem, AvailablePastorItem } from '@/lib/types'
 import { fmtDate } from '@/lib/format'
 
 const MONTHS_ID = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
@@ -170,11 +170,122 @@ function EditSheet({ sub, allWadah, onClose, onSave, isPending }: {
   )
 }
 
+function ManualSubmitSheet({ availablePastors, allDivisions, onClose, onSave, isPending }: {
+  availablePastors: AvailablePastorItem[]
+  allDivisions: { id: string; name: string }[]
+  onClose: () => void
+  onSave: (pastorId: string, persepuluhan: number, bulan: number, wadahEntries: { divisionId: string; amount: number }[]) => Promise<string | null>
+  isPending: boolean
+}) {
+  const [search, setSearch] = useState('')
+  const [selectedPastorId, setSelectedPastorId] = useState('')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [persepuluhan, setPersepuluhan] = useState('')
+  const [bulan, setBulan] = useState('1')
+  const [wadah, setWadah] = useState<Record<string, string>>({})
+  const [error, setError] = useState('')
+  const submittingRef = useRef(false)
+
+  const selectedPastor = availablePastors.find(p => p.id === selectedPastorId)
+
+  const filtered = search
+    ? availablePastors.filter(p => p.name.toLowerCase().includes(search.toLowerCase()))
+    : availablePastors
+
+  function handleSelectPastor(p: AvailablePastorItem) {
+    setSelectedPastorId(p.id)
+    setSearch(p.name)
+    setDropdownOpen(false)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (submittingRef.current || isPending || !selectedPastorId) return
+    submittingRef.current = true
+    setError('')
+    const entries = allDivisions
+      .map(d => ({ divisionId: d.id, amount: parseInt(wadah[d.id] || '0') || 0 }))
+    const err = await onSave(selectedPastorId, parseInt(persepuluhan) || 0, parseInt(bulan) || 1, entries)
+    if (err) { setError(err); submittingRef.current = false }
+  }
+
+  return (
+    <div className="sheet-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="sheet">
+        <div className="sheet-handle" />
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <div className="sheet-title" style={{ margin: 0 }}>Tambah Data Manual</div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', fontSize: 30, color: 'var(--red)', lineHeight: 1, fontFamily: 'inherit' }}>×</button>
+        </div>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="form-group" style={{ position: 'relative' }}>
+            <label className="form-label">Nama Pendeta</label>
+            <input
+              className="form-input"
+              placeholder="Cari pendeta..."
+              value={search}
+              onChange={e => { setSearch(e.target.value); setDropdownOpen(true); setSelectedPastorId('') }}
+              onFocus={() => setDropdownOpen(true)}
+              onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
+              autoComplete="off"
+            />
+            {dropdownOpen && filtered.length > 0 && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, zIndex: 10, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+                {filtered.map(p => (
+                  <div
+                    key={p.id}
+                    onMouseDown={() => handleSelectPastor(p)}
+                    style={{ padding: '10px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--border)' }}
+                  >
+                    <span style={{ flex: 1, fontSize: 14 }}>{p.name}</span>
+                    <span className={`badge pastor-title-${p.title}`} style={{ fontSize: 11 }}>{TITLE_LABEL[p.title] ?? p.title.toUpperCase()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {selectedPastor?.pelayanan && (
+            <div style={{ fontSize: 13, color: 'var(--text-sub)', marginTop: -8 }}>{selectedPastor.pelayanan}</div>
+          )}
+
+          <div className="form-group">
+            <label className="form-label">Persepuluhan</label>
+            <RupiahInput value={persepuluhan} onChange={setPersepuluhan} />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Untuk berapa bulan</label>
+            <input className="form-input" type="number" min={1} value={bulan} onChange={e => setBulan(e.target.value)} style={{ maxWidth: 120 }} />
+          </div>
+          {allDivisions.length > 0 && (
+            <div className="form-group">
+              <label className="form-label">Wadah (opsional)</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {allDivisions.map(d => (
+                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 13, color: 'var(--text-sub)', minWidth: 80 }}>{d.name}</span>
+                    <RupiahInput value={wadah[d.id] ?? ''} onChange={v => setWadah(prev => ({ ...prev, [d.id]: v }))} className="form-input" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {error && <div style={{ fontSize: 13, color: 'var(--red)' }}>{error}</div>}
+          <button type="submit" className="submit-btn" disabled={isPending || !selectedPastorId} style={{ marginTop: 4 }}>
+            {isPending ? 'Menyimpan...' : 'Simpan'}
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 interface Props { meeting: MeetingDetailData }
 
 export default function MeetingDetailClient({ meeting }: Props) {
   const [viewSub, setViewSub] = useState<SubmissionItem | null>(null)
   const [editSub, setEditSub] = useState<SubmissionItem | null>(null)
+  const [showManual, setShowManual] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirmApproveAll, setConfirmApproveAll] = useState(false)
   const [showExportModal, setShowExportModal] = useState(false)
@@ -233,6 +344,16 @@ export default function MeetingDetailClient({ meeting }: Props) {
     startTransition(async () => { await closeMeeting(meeting.id) })
   }
 
+  async function handleManualSave(pastorId: string, persepuluhan: number, bulan: number, wadahEntries: { divisionId: string; amount: number }[]): Promise<string | null> {
+    return new Promise(resolve => {
+      startTransition(async () => {
+        const result = await adminAddSubmission({ meetingId: meeting.id, pastorId, persepuluhan, bulan, wadahEntries })
+        if (result.ok) { setShowManual(false); resolve(null) }
+        else resolve(result.error ?? 'Terjadi kesalahan.')
+      })
+    })
+  }
+
   return (
     <div className="screen">
       <div className="topnav">
@@ -242,13 +363,15 @@ export default function MeetingDetailClient({ meeting }: Props) {
           </svg>
         </Link>
         <div style={{ flex: 1 }}>
-          <div className="topnav-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="topnav-title">
             {MONTHS_ID[parseInt(meeting.month.split('-')[1]) - 1]} {meeting.month.split('-')[0]}
+          </div>
+          <div className="topnav-sub" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <span className={`badge ${meeting.status === 'open' ? 'meeting-open' : 'meeting-closed'}`} style={{ fontSize: 11 }}>
               {meeting.status === 'open' ? 'Aktif' : 'Tutup'}
             </span>
+            {meeting.submissions.length} / {meeting.allPastorCount} pendeta
           </div>
-          <div className="topnav-sub">{meeting.submissions.length} / {meeting.allPastorCount} pendeta</div>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           {selected.size > 0 && (
@@ -376,6 +499,15 @@ export default function MeetingDetailClient({ meeting }: Props) {
           isPending={isPending}
         />
       )}
+      {showManual && (
+        <ManualSubmitSheet
+          availablePastors={meeting.availablePastors}
+          allDivisions={meeting.allDivisions}
+          onClose={() => setShowManual(false)}
+          onSave={handleManualSave}
+          isPending={isPending}
+        />
+      )}
       {confirmApproveAll && (
         <AlertModal
           message={`Setujui ${selected.size} submission sekaligus?`}
@@ -384,6 +516,13 @@ export default function MeetingDetailClient({ meeting }: Props) {
           onConfirm={() => { setConfirmApproveAll(false); handleApproveSelected() }}
         />
       )}
+      <button
+        onClick={() => setShowManual(true)}
+        style={{ position: 'fixed', bottom: 28, right: 20, width: 52, height: 52, borderRadius: '50%', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 26, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.18)', zIndex: 100, lineHeight: 1 }}
+        aria-label="Tambah data manual"
+      >
+        +
+      </button>
       {showExportModal && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}

@@ -91,6 +91,13 @@ export interface SetorBantuanItem {
   amount: number
 }
 
+export interface AvailablePastorItem {
+  id: string
+  name: string
+  title: PastorTitle
+  pelayanan: string | null
+}
+
 export interface MeetingDetailData {
   id: string
   token: string
@@ -102,6 +109,8 @@ export interface MeetingDetailData {
   setorDate: string | null
   setorNetAmount: number | null
   setorItems: SetorBantuanItem[]
+  availablePastors: AvailablePastorItem[]
+  allDivisions: { id: string; name: string }[]
 }
 
 export interface LogItem {

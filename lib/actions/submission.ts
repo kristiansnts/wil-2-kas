@@ -70,6 +70,40 @@ export async function submitPastorForm(payload: {
   return { ok: true }
 }
 
+export async function adminAddSubmission(payload: {
+  meetingId: string
+  pastorId: string
+  persepuluhan: number
+  bulan: number
+  wadahEntries: { divisionId: string; amount: number }[]
+}): Promise<{ ok: boolean; error?: string }> {
+  const meeting = await prisma.meeting.findUnique({ where: { id: payload.meetingId } })
+  if (!meeting) return { ok: false, error: 'Pertemuan tidak ditemukan.' }
+
+  const existing = await prisma.pastorSubmission.findFirst({
+    where: { meetingId: payload.meetingId, pastorId: payload.pastorId },
+  })
+  if (existing) return { ok: false, error: 'Pendeta sudah mengisi.' }
+
+  await prisma.pastorSubmission.create({
+    data: {
+      meetingId: payload.meetingId,
+      pastorId: payload.pastorId,
+      persepuluhan: payload.persepuluhan,
+      bulan: payload.bulan,
+      status: 'pending',
+      wadahEntries: {
+        create: payload.wadahEntries
+          .filter(w => w.amount > 0)
+          .map(w => ({ divisionId: w.divisionId, amount: w.amount })),
+      },
+    },
+  })
+
+  revalidatePath(`/pertemuan/${payload.meetingId}`)
+  return { ok: true }
+}
+
 export async function approveSubmission(submissionId: string): Promise<void> {
   const sub = await prisma.pastorSubmission.findUnique({
     where: { id: submissionId },
