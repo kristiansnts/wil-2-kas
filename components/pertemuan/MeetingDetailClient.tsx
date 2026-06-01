@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef } from 'react'
 import Link from 'next/link'
 import { approveSubmission, editSubmission, adminAddSubmission } from '@/lib/actions/submission'
-import { closeMeeting } from '@/lib/actions/meeting'
+import { closeMeeting, closeMeetingForm } from '@/lib/actions/meeting'
 import { RupiahInput } from '@/components/ui/RupiahInput'
 import { AlertModal } from '@/components/ui/AlertModal'
 import type { MeetingDetailData, SubmissionItem, AvailablePastorItem } from '@/lib/types'
@@ -383,11 +383,14 @@ export default function MeetingDetailClient({ meeting }: Props) {
               {isPending ? '...' : `Setujui ${selected.size}`}
             </button>
           )}
-          <button onClick={() => setShowExportModal(true)} style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', fontWeight: 600 }}>XLSX</button>
+          <Link href={`/pertemuan/${meeting.id}/export`} onClick={e => { e.preventDefault(); setShowExportModal(true) }} style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', padding: '6px 8px', fontWeight: 600 }}>XLSX</Link>
           {meeting.status === 'open' && (
-            <button onClick={handleClose} disabled={isPending} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', fontWeight: 600 }}>
-              Tutup
-            </button>
+            <form action={closeMeetingForm} style={{ display: 'inline' }}>
+              <input type="hidden" name="meetingId" value={meeting.id} />
+              <button type="submit" onClick={e => { e.preventDefault(); handleClose() }} disabled={isPending} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', fontWeight: 600 }}>
+                Tutup
+              </button>
+            </form>
           )}
         </div>
       </div>
@@ -464,12 +467,13 @@ export default function MeetingDetailClient({ meeting }: Props) {
                       <span className={`badge pastor-title-${sub.pastorTitle}`} style={{ fontSize: 11 }}>{TITLE_LABEL[sub.pastorTitle] ?? sub.pastorTitle.toUpperCase()}</span>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <button
-                        onClick={() => setViewSub(sub)}
-                        style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
+                      <Link
+                        href={`/pertemuan/${meeting.id}/submission/${sub.id}`}
+                        onClick={e => { e.preventDefault(); setViewSub(sub) }}
+                        style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)', textDecoration: 'none', padding: '4px 8px' }}
                       >
                         Lihat
-                      </button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -516,13 +520,14 @@ export default function MeetingDetailClient({ meeting }: Props) {
           onConfirm={() => { setConfirmApproveAll(false); handleApproveSelected() }}
         />
       )}
-      <button
-        onClick={() => setShowManual(true)}
-        style={{ position: 'fixed', bottom: 28, right: 20, width: 52, height: 52, borderRadius: '50%', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 26, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.18)', zIndex: 100, lineHeight: 1 }}
+      <Link
+        href={`/pertemuan/${meeting.id}/submission/baru`}
+        onClick={e => { e.preventDefault(); setShowManual(true) }}
+        style={{ position: 'fixed', bottom: 28, right: 20, width: 52, height: 52, borderRadius: '50%', background: 'var(--accent)', color: '#fff', border: 'none', fontSize: 26, fontWeight: 300, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.18)', zIndex: 100, lineHeight: 1, textDecoration: 'none' }}
         aria-label="Tambah data manual"
       >
         +
-      </button>
+      </Link>
       {showExportModal && (
         <div
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}

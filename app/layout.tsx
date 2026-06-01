@@ -29,12 +29,33 @@ const RUPIAH_SCRIPT = `(function(){
   document.addEventListener('DOMContentLoaded',function(){var l=document.querySelectorAll('input[data-rupiah]');for(var i=0;i<l.length;i++)f(l[i]);});
 })();`
 
+// Keyboard navigation: handle iOS keyboard "next" button to move focus between form fields.
+// Works on iOS 14+ and all modern browsers. Finds all focusable form inputs and enables
+// moving to the next field when Enter is pressed (or the keyboard "next" button is tapped).
+const KEYBOARD_NAV_SCRIPT = `(function(){
+  document.addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    var t=e.target;
+    if(!t||t.nodeName!=='INPUT'||t.type==='submit')return;
+    var form=t.form;
+    if(!form)return;
+    var inputs=Array.prototype.slice.call(form.querySelectorAll('input:not([type=hidden]),select,textarea'));
+    var focusable=inputs.filter(function(el){return!el.disabled&&el.offsetParent!==null;});
+    var idx=focusable.indexOf(t);
+    if(idx>=0&&idx<focusable.length-1){
+      e.preventDefault();
+      focusable[idx+1].focus();
+    }
+  });
+})();`
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className={dmSans.className}>
       <body>
         {children}
         <script dangerouslySetInnerHTML={{ __html: RUPIAH_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: KEYBOARD_NAV_SCRIPT }} />
       </body>
     </html>
   )

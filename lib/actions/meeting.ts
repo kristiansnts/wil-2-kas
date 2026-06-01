@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import type { MeetingItem, MeetingDetailData, SubmissionItem, WadahEntryItem, SetorBantuanItem, PastorTitle, AvailablePastorItem } from '@/lib/types'
 
@@ -35,6 +36,22 @@ export async function closeMeeting(id: string): Promise<void> {
   await prisma.meeting.update({ where: { id }, data: { status: 'closed' } })
   revalidatePath('/pertemuan')
   revalidatePath(`/pertemuan/${id}`)
+}
+
+// ---- FormData form actions (no-JS fallback) ----
+
+export async function createMeetingForm(formData: FormData) {
+  const month = String(formData.get('month') ?? '').trim()
+  const deadline = String(formData.get('deadline') ?? '').trim()
+  if (!month || !deadline) redirect('/pertemuan/baru')
+  await createMeeting({ month, deadline })
+  redirect('/pertemuan')
+}
+
+export async function closeMeetingForm(formData: FormData) {
+  const id = String(formData.get('meetingId') ?? '').trim()
+  await closeMeeting(id)
+  redirect(`/pertemuan/${id}`)
 }
 
 export async function getMeetingByToken(token: string) {

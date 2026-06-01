@@ -107,12 +107,13 @@ export default function PertemuanClient({ meetings }: Props) {
           <div className="topnav-title">Pertemuan Wilayah</div>
           <div className="topnav-sub">{meetings.length} pertemuan</div>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          style={{ fontSize: 13, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', fontWeight: 600 }}
+        <Link
+          href="/pertemuan/baru"
+          onClick={e => { e.preventDefault(); setShowCreate(true) }}
+          style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', padding: '6px 8px', fontWeight: 600 }}
         >
           + Buat
-        </button>
+        </Link>
       </div>
 
       <div className="content">
@@ -140,16 +141,17 @@ export default function PertemuanClient({ meetings }: Props) {
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
                   {m.status === 'open' && (
-                    <button
-                      onClick={() => copyLink(m.token)}
+                    <Link
+                      href={`/pertemuan/${m.id}/link`}
+                      onClick={e => { e.preventDefault(); copyLink(m.token) }}
                       title="Salin link"
-                      style={{ width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'inherit' }}
                     >
                       <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
                         <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
                       </svg>
-                    </button>
+                    </Link>
                   )}
                   <Link
                     href={`/pertemuan/${m.id}`}

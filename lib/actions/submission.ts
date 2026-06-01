@@ -1,6 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { headers } from 'next/headers'
 import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
@@ -200,4 +201,58 @@ export async function editSubmission(
 
   const sub = await prisma.pastorSubmission.findUnique({ where: { id: submissionId } })
   if (sub) revalidatePath(`/pertemuan/${sub.meetingId}`)
+}
+
+// ---- FormData form actions (used by /pertemuan/[id]/submission/* fallback pages) ----
+
+function rupiah(v: FormDataEntryValue | null): number {
+  return parseInt(String(v ?? '').replace(/\D/g, '')) || 0
+}
+function str(v: FormDataEntryValue | null): string {
+  return String(v ?? '').trim()
+}
+// Collect wadah_<divisionId> inputs into wadah entries.
+function wadahFromForm(formData: FormData): { divisionId: string; amount: number }[] {
+  const entries: { divisionId: string; amount: number }[] = []
+  for (const [key, val] of formData.entries()) {
+    if (key.startsWith('wadah_')) {
+      const amount = parseInt(String(val).replace(/\D/g, '')) || 0
+      if (amount > 0) entries.push({ divisionId: key.slice(6), amount })
+    }
+  }
+  return entries
+}
+
+export async function approveSubmissionForm(formData: FormData) {
+  const submissionId = str(formData.get('submissionId'))
+  const meetingId = str(formData.get('meetingId'))
+  await approveSubmission(submissionId)
+  redirect(`/pertemuan/${meetingId}`)
+}
+
+export async function editSubmissionForm(formData: FormData) {
+  const submissionId = str(formData.get('submissionId'))
+  const meetingId = str(formData.get('meetingId'))
+  await editSubmission(submissionId, {
+    persepuluhan: rupiah(formData.get('persepuluhan')),
+    bulan: parseInt(str(formData.get('bulan'))) || 1,
+    wadahEntries: wadahFromForm(formData),
+  })
+  redirect(`/pertemuan/${meetingId}`)
+}
+
+export async function adminAddSubmissionForm(formData: FormData) {
+  const meetingId = str(formData.get('meetingId'))
+  const pastorId = str(formData.get('pastorId'))
+  const baruUrl = `/pertemuan/${meetingId}/submission/baru`
+  if (!pastorId) redirect(`${baruUrl}?error=${encodeURIComponent('Pilih pendeta terlebih dahulu.')}`)
+  const result = await adminAddSubmission({
+    meetingId,
+    pastorId,
+    persepuluhan: rupiah(formData.get('persepuluhan')),
+    bulan: parseInt(str(formData.get('bulan'))) || 1,
+    wadahEntries: wadahFromForm(formData),
+  })
+  if (!result.ok) redirect(`${baruUrl}?error=${encodeURIComponent(result.error ?? 'Gagal menyimpan.')}`)
+  redirect(`/pertemuan/${meetingId}`)
 }
