@@ -91,13 +91,13 @@ function TxnRow({ txn, onEdit, onDelete, isPending }: { txn: TxnUmumItem; onEdit
             {txn.type === 'masuk' ? '+' : '-'}{fmtShort(txn.amount)}
           </div>
           {!isTransfer && (
-            <button onClick={onEdit} disabled={isPending} style={{ ...btnIcon, background: 'var(--accent)', color: 'white' }}>
+            <Link href={`/kas/transaksi/${txn.id}/edit`} onClick={e => { e.preventDefault(); onEdit() }} style={{ ...btnIcon, background: 'var(--accent)', color: 'white', textDecoration: 'none' }}>
               <Icon name="pencil" size={15} />
-            </button>
+            </Link>
           )}
-          <button onClick={() => setConfirm(true)} disabled={isPending} style={{ ...btnIcon, background: 'var(--red)', color: 'white' }}>
+          <Link href={`/kas/transaksi/${txn.id}/hapus`} onClick={e => { e.preventDefault(); setConfirm(true) }} style={{ ...btnIcon, background: 'var(--red)', color: 'white', textDecoration: 'none' }}>
             <Icon name="trash" size={15} />
-          </button>
+          </Link>
         </div>
       )}
     </div>
@@ -670,33 +670,36 @@ export default function KasUmumClient({ balance, divisions, transactions, meetin
           </div>
         </div>
 
+        {/* Progressive enhancement: each tile is a real link to a no-JS fallback page.
+            On modern browsers JS intercepts the click and opens the modal instead;
+            on old Safari (no hydration) the link navigates to the dedicated page. */}
         <div className="actions-grid">
-          <button className="action-btn" onClick={() => setSheet('masuk')}>
+          <Link href="/kas/pemasukan" className="action-btn" onClick={e => { e.preventDefault(); setSheet('masuk') }}>
             <div className="action-icon" style={{ background: 'var(--green-light)', color: 'var(--green)' }}><Icon name="plus" /></div>
             <div className="action-label">Pemasukan</div>
-          </button>
-          <button className="action-btn" onClick={() => setSheet('keluar')}>
+          </Link>
+          <Link href="/kas/pengeluaran" className="action-btn" onClick={e => { e.preventDefault(); setSheet('keluar') }}>
             <div className="action-icon" style={{ background: 'var(--red-light)', color: 'var(--red)' }}><Icon name="minus" /></div>
             <div className="action-label">Pengeluaran</div>
-          </button>
-          <button className="action-btn" onClick={() => setSheet('transfer')}>
-            <div className="action-icon" style={{ background: 'oklch(0.93 0.05 250)', color: 'var(--accent)' }}><Icon name="transfer" /></div>
+          </Link>
+          <Link href="/kas/transfer" className="action-btn" onClick={e => { e.preventDefault(); setSheet('transfer') }}>
+            <div className="action-icon" style={{ background: '#e3eeff', color: 'var(--accent)' }}><Icon name="transfer" /></div>
             <div className="action-label">Transfer</div>
-          </button>
-          <button className="action-btn" onClick={() => setSheet('buat-komisi')}>
-            <div className="action-icon" style={{ background: 'oklch(0.93 0.06 310)', color: 'oklch(0.42 0.16 310)' }}><Icon name="group" /></div>
+          </Link>
+          <Link href="/kas/komisi-baru" className="action-btn" onClick={e => { e.preventDefault(); setSheet('buat-komisi') }}>
+            <div className="action-icon" style={{ background: '#f2e3ff', color: '#6b22a0' }}><Icon name="group" /></div>
             <div className="action-label">Buat Komisi</div>
-          </button>
-          <button className="action-btn" onClick={() => setSheet('setor-md')}>
-            <div className="action-icon" style={{ background: 'oklch(0.93 0.08 55)', color: 'oklch(0.45 0.14 55)', fontWeight: 700, fontSize: 13 }}>MD</div>
+          </Link>
+          <Link href="/kas/setor-md" className="action-btn" onClick={e => { e.preventDefault(); setSheet('setor-md') }}>
+            <div className="action-icon" style={{ background: '#fef0d0', color: '#8a5a10', fontWeight: 700, fontSize: 13 }}>MD</div>
             <div className="action-label">Setor MD</div>
-          </button>
-          <button className="action-btn" onClick={() => setSheet('cetak-laporan')}>
-            <div className="action-icon" style={{ background: 'oklch(0.93 0.06 160)', color: 'oklch(0.42 0.14 160)' }}>
+          </Link>
+          <Link href="/kas/laporan" className="action-btn" onClick={e => { e.preventDefault(); setSheet('cetak-laporan') }}>
+            <div className="action-icon" style={{ background: '#d6f7e6', color: '#1a7845' }}>
               <Icon name="print" />
             </div>
             <div className="action-label">Laporan Bulanan</div>
-          </button>
+          </Link>
         </div>
 
         <Link href="/pertemuan" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, textDecoration: 'none', color: 'inherit' }}>

@@ -21,3 +21,9 @@ export function initials(name: string): string {
 export function todayStr(): string {
   return new Date().toISOString().split('T')[0]
 }
+
+const MONTHS_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+export function fmtYM(ym: string): string {
+  const [y, m] = ym.split('-')
+  return `${MONTHS_ID[parseInt(m) - 1]} ${y}`
+}

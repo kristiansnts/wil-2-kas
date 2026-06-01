@@ -47,7 +47,7 @@ const btnIcon: React.CSSProperties = {
   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
 }
 
-function TxnRow({ txn, eventName, onEdit, onDelete, isPending, readOnly }: { txn: TxnDivisiItem; eventName?: string; onEdit: () => void; onDelete: () => void; isPending: boolean; readOnly: boolean }) {
+function TxnRow({ txn, divisionId, eventName, onEdit, onDelete, isPending, readOnly }: { txn: TxnDivisiItem; divisionId: string; eventName?: string; onEdit: () => void; onDelete: () => void; isPending: boolean; readOnly: boolean }) {
   const [confirm, setConfirm] = useState(false)
   const isTransferFromUmum = txn.desc === 'Transfer dari Kas Umum'
   return (
@@ -83,12 +83,12 @@ function TxnRow({ txn, eventName, onEdit, onDelete, isPending, readOnly }: { txn
           <div className={`txn-amount ${txn.type}`}>
             {txn.type === 'masuk' ? '+' : '-'}{fmtShort(txn.amount)}
           </div>
-          <button onClick={onEdit} disabled={isPending} style={{ ...btnIcon, background: 'var(--accent)', color: 'white' }}>
+          <Link href={`/divisi/${divisionId}/transaksi/${txn.id}/edit`} onClick={e => { e.preventDefault(); onEdit() }} style={{ ...btnIcon, background: 'var(--accent)', color: 'white', textDecoration: 'none' }}>
             <Icon name="pencil" size={15} />
-          </button>
-          <button onClick={() => setConfirm(true)} disabled={isPending} style={{ ...btnIcon, background: 'var(--red)', color: 'white' }}>
+          </Link>
+          <Link href={`/divisi/${divisionId}/transaksi/${txn.id}/hapus`} onClick={e => { e.preventDefault(); setConfirm(true) }} style={{ ...btnIcon, background: 'var(--red)', color: 'white', textDecoration: 'none' }}>
             <Icon name="trash" size={15} />
-          </button>
+          </Link>
         </div>
       )}
     </div>
@@ -307,8 +307,8 @@ function FormEventSheet({
   )
 }
 
-function EventCard({ ev, spent, isPending, readOnly, onSelect, onEdit, onDelete }: {
-  ev: EventItem; spent: number; isPending: boolean; readOnly: boolean
+function EventCard({ ev, divisionId, spent, isPending, readOnly, onSelect, onEdit, onDelete }: {
+  ev: EventItem; divisionId: string; spent: number; isPending: boolean; readOnly: boolean
   onSelect: () => void; onEdit: () => void; onDelete: () => void
 }) {
   const [confirm, setConfirm] = useState(false)
@@ -330,12 +330,12 @@ function EventCard({ ev, spent, isPending, readOnly, onSelect, onEdit, onDelete 
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{fmtShort(spent)} terpakai</div>
-            <button onClick={onEdit} disabled={isPending} style={{ ...btnIcon, background: 'var(--accent)', color: 'white' }}>
+            <Link href={`/divisi/${divisionId}/event/${ev.id}/edit`} onClick={e => { e.preventDefault(); onEdit() }} style={{ ...btnIcon, background: 'var(--accent)', color: 'white', textDecoration: 'none' }}>
               <Icon name="pencil" size={15} />
-            </button>
-            <button onClick={() => setConfirm(true)} disabled={isPending} style={{ ...btnIcon, background: 'var(--red)', color: 'white' }}>
+            </Link>
+            <Link href={`/divisi/${divisionId}/event/${ev.id}/hapus`} onClick={e => { e.preventDefault(); setConfirm(true) }} style={{ ...btnIcon, background: 'var(--red)', color: 'white', textDecoration: 'none' }}>
               <Icon name="trash" size={15} />
-            </button>
+            </Link>
           </div>
         )
       )}
@@ -521,19 +521,20 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
         </div>
 
         {!readOnly && (
+          // Progressive enhancement: real links to no-JS fallback pages; JS intercepts to open the modal.
           <div className="actions-grid">
-            <button className="action-btn" onClick={() => setSheet('masuk')}>
+            <Link href={`/divisi/${division.id}/pemasukan`} className="action-btn" onClick={e => { e.preventDefault(); setSheet('masuk') }}>
               <div className="action-icon" style={{ background: 'var(--green-light)', color: 'var(--green)' }}><Icon name="plus" size={18} /></div>
               <div className="action-label">Catat Pemasukan</div>
-            </button>
-            <button className="action-btn" onClick={() => setSheet('keluar')}>
+            </Link>
+            <Link href={`/divisi/${division.id}/pengeluaran`} className="action-btn" onClick={e => { e.preventDefault(); setSheet('keluar') }}>
               <div className="action-icon" style={{ background: 'var(--red-light)', color: 'var(--red)' }}><Icon name="minus" size={18} /></div>
               <div className="action-label">Catat Pengeluaran</div>
-            </button>
-            <button className="action-btn wide" onClick={() => setSheet('event')}>
-              <div className="action-icon" style={{ background: 'oklch(0.93 0.06 310)', color: 'oklch(0.42 0.16 310)' }}><Icon name="flag" size={17} /></div>
+            </Link>
+            <Link href={`/divisi/${division.id}/event/baru`} className="action-btn wide" onClick={e => { e.preventDefault(); setSheet('event') }}>
+              <div className="action-icon" style={{ background: '#f2e3ff', color: '#6b22a0' }}><Icon name="flag" size={17} /></div>
               <div className="action-label">Buat Event Baru</div>
-            </button>
+            </Link>
           </div>
         )}
 
@@ -554,6 +555,7 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
                   <EventCard
                     key={ev.id}
                     ev={ev}
+                    divisionId={division.id}
                     spent={spent}
                     isPending={isPending}
                     readOnly={readOnly}
@@ -591,7 +593,7 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
               </div>
             ) : (
               pagedTxns.map(txn => (
-                <TxnRow key={txn.id} txn={txn} eventName={getEventName(txn.eventId)} onEdit={() => setEditTxn(txn)} onDelete={() => handleDeleteTxn(txn)} isPending={isPending} readOnly={readOnly} />
+                <TxnRow key={txn.id} txn={txn} divisionId={division.id} eventName={getEventName(txn.eventId)} onEdit={() => setEditTxn(txn)} onDelete={() => handleDeleteTxn(txn)} isPending={isPending} readOnly={readOnly} />
               ))
             )}
           </div>

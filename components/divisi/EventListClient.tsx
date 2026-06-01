@@ -43,8 +43,8 @@ function TrashIcon() {
   )
 }
 
-function EventCard({ ev, spent, isPending, readOnly, onEdit, onDelete }: {
-  ev: EventItem; spent: number; isPending: boolean; readOnly: boolean
+function EventCard({ ev, divisionId, spent, isPending, readOnly, onEdit, onDelete }: {
+  ev: EventItem; divisionId: string; spent: number; isPending: boolean; readOnly: boolean
   onEdit: () => void; onDelete: () => void
 }) {
   const [confirm, setConfirm] = useState(false)
@@ -66,12 +66,12 @@ function EventCard({ ev, spent, isPending, readOnly, onEdit, onDelete }: {
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{fmtShort(spent)} terpakai</div>
-            <button onClick={onEdit} disabled={isPending} style={{ ...btnIcon, background: 'var(--accent)', color: 'white' }}>
+            <Link href={`/divisi/${divisionId}/event/${ev.id}/edit`} onClick={e => { e.preventDefault(); onEdit() }} style={{ ...btnIcon, background: 'var(--accent)', color: 'white', textDecoration: 'none' }}>
               <PencilIcon />
-            </button>
-            <button onClick={() => setConfirm(true)} disabled={isPending} style={{ ...btnIcon, background: 'var(--red)', color: 'white' }}>
+            </Link>
+            <Link href={`/divisi/${divisionId}/event/${ev.id}/hapus`} onClick={e => { e.preventDefault(); setConfirm(true) }} style={{ ...btnIcon, background: 'var(--red)', color: 'white', textDecoration: 'none' }}>
               <TrashIcon />
-            </button>
+            </Link>
           </div>
         )
       )}
@@ -202,12 +202,13 @@ export default function EventListClient({ divisionId, divisionName, readOnly, ev
           <div className="topnav-sub">{divisionName} · {events.length} event</div>
         </div>
         {!readOnly && (
-          <button
-            onClick={() => setShowSheet(true)}
-            style={{ fontSize: 13, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '6px 8px', fontWeight: 600 }}
+          <Link
+            href={`/divisi/${divisionId}/event/baru`}
+            onClick={e => { e.preventDefault(); setShowSheet(true) }}
+            style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', padding: '6px 8px', fontWeight: 600 }}
           >
             + Buat
-          </button>
+          </Link>
         )}
       </div>
 
@@ -229,6 +230,7 @@ export default function EventListClient({ divisionId, divisionName, readOnly, ev
                 <EventCard
                   key={ev.id}
                   ev={ev}
+                  divisionId={divisionId}
                   spent={spent}
                   isPending={isPending}
                   readOnly={readOnly}

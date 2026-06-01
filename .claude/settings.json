@@ -19,7 +19,16 @@
       "Bash(DATABASE_URL=\"postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require\" node /tmp/check-db.mjs)",
       "Bash(DATABASE_URL=\"postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require\" node /tmp/verify.mjs)",
       "Bash(DATABASE_URL=\"postgres://ed05a901d18392bf0edcf52b99e534aa359eb2307cb699ba11b6f43b5b8fe827:sk_RbE3Va_8DkaDRRU_z3vqx@db.prisma.io:5432/postgres?sslmode=require\" node /tmp/reset-march.mjs)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(cd /tmp/iosdbg *)",
+      "Read(//private/tmp/iosdbg/**)",
+      "Bash(grep -oE \"/[^/\\\\n]{1,40}/[gimsuy]*v[gimsuy]*\" 03~yq9q893hmn.js)",
+      "Bash(grep -oE \".{0,15}hasOwn:function.{0,30}\" 0ggaezbh6w5yd.js)",
+      "Bash(grep -oE \"target:\\\\\"Array\\\\\"[^}]{0,40}|at:function at\\\\\\(\" 0ggaezbh6w5yd.js)",
+      "Bash(grep -oE \"target:.\\(Array|String\\).,proto:.0.,forced[^}]{0,30}|\\\\bat:function\" 0ggaezbh6w5yd.js)",
+      "Bash(node --check 0ggaezbh6w5yd.js)",
+      "Bash(npm uninstall *)",
+      "Bash(pkill -f \"next-server\")"
     ],
     "additionalDirectories": [
       "/Users/kristian/Documents/projects/wil-2-kas/app/divisi/[id]",

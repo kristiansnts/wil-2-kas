@@ -1,9 +1,20 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { fmtShort } from '@/lib/format'
+
+// --- FormData wrappers (no-JS fallback pages submit via native <form action>) ---
+// Each parses FormData, reuses the typed action above, then redirects back.
+// Money is parsed dot-tolerantly so "1.000.000" and "1000000" both work.
+function rupiah(v: FormDataEntryValue | null): number {
+  return parseInt(String(v ?? '').replace(/\D/g, '')) || 0
+}
+function str(v: FormDataEntryValue | null): string {
+  return String(v ?? '').trim()
+}
 
 export async function getKasUmumData() {
   const [kasUmum, divisions, transactions, logs] = await Promise.all([
@@ -245,4 +256,74 @@ export async function addDivision(payload: { name: string; initialBalance: numbe
   })
 
   revalidatePath('/')
+}
+
+// ---- FormData form actions (used by /kas/* fallback pages) ----
+
+export async function addTxnUmumForm(formData: FormData) {
+  const isTransfer = str(formData.get('isTransfer')) === '1'
+  const amount = rupiah(formData.get('amount'))
+  if (!amount) redirect('/')
+  await addTxnUmum({
+    type: isTransfer ? 'keluar' : (str(formData.get('type')) as 'masuk' | 'keluar'),
+    amount,
+    desc: str(formData.get('desc')),
+    date: str(formData.get('date')),
+    isTransfer,
+    refDivId: isTransfer ? str(formData.get('refDivId')) : undefined,
+  })
+  redirect('/')
+}
+
+export async function addDivisionForm(formData: FormData) {
+  const name = str(formData.get('name'))
+  if (!name) redirect('/')
+  await addDivision({ name, initialBalance: rupiah(formData.get('initialBalance')) })
+  redirect('/')
+}
+
+export async function updateTxnUmumForm(formData: FormData) {
+  const id = str(formData.get('id'))
+  const amount = rupiah(formData.get('amount'))
+  const existing = await prisma.transaction.findUnique({ where: { id } })
+  if (!existing || !amount) redirect('/')
+  await updateTxnUmum(id, existing.amount, existing.type as 'masuk' | 'keluar', {
+    type: str(formData.get('type')) as 'masuk' | 'keluar',
+    amount,
+    desc: str(formData.get('desc')),
+    date: str(formData.get('date')),
+  })
+  redirect('/')
+}
+
+export async function deleteTxnUmumForm(formData: FormData) {
+  const id = str(formData.get('id'))
+  const existing = await prisma.transaction.findUnique({ where: { id } })
+  if (existing) {
+    await deleteTxnUmum(id, existing.amount, existing.type as 'masuk' | 'keluar', existing.refDivId)
+  }
+  redirect('/')
+}
+
+export async function addSetorMDForm(formData: FormData) {
+  const meetingId = str(formData.get('meetingId'))
+  const meeting = await prisma.meeting.findUnique({
+    where: { id: meetingId },
+    include: { submissions: { where: { status: 'approved' }, select: { persepuluhan: true } } },
+  })
+  if (!meeting) redirect('/')
+  const totalPersepuluhan = meeting.submissions.reduce((s, x) => s + x.persepuluhan, 0)
+  const amount85 = Math.round(totalPersepuluhan * 0.85)
+
+  const items: { desc: string; amount: number }[] = []
+  for (let i = 0; i < 8; i++) {
+    const desc = str(formData.get(`desc${i}`))
+    const amount = rupiah(formData.get(`amount${i}`))
+    if (desc && amount > 0) items.push({ desc, amount })
+  }
+  const netSetor = amount85 - items.reduce((s, i) => s + i.amount, 0)
+  if (netSetor <= 0) redirect(`/kas/setor-md/${meetingId}`)
+
+  await addSetorMD({ meetingId, setorNetAmount: netSetor, date: str(formData.get('date')), items })
+  redirect('/')
 }
