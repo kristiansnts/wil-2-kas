@@ -2,7 +2,6 @@ import Link from 'next/link'
 import { redirect, notFound } from 'next/navigation'
 import { getSession } from '@/lib/session'
 import { getMeetingDetail } from '@/lib/actions/meeting'
-import { approveSubmissionForm } from '@/lib/actions/submission'
 import { fmt } from '@/lib/format'
 import { FormShell } from '@/components/forms/FormShell'
 
@@ -51,9 +50,7 @@ export default async function Page({ params }: { params: Promise<{ id: string; s
           Sudah Disetujui ✓
         </div>
       ) : (
-        <form action={approveSubmissionForm}>
-          <input type="hidden" name="submissionId" value={sub.id} />
-          <input type="hidden" name="meetingId" value={meeting.id} />
+        <form action={`/pertemuan/${id}/submission/${sub.id}/approve`} method="post">
           <button type="submit" className="submit-btn">Setujui</button>
         </form>
       )}
