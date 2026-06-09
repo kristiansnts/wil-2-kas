@@ -6,6 +6,7 @@ import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { fmtShort } from '@/lib/format'
 import { getSession } from '@/lib/session'
+import { deleteFromR2 } from '@/lib/r2'
 
 async function requireDivisi() {
   const session = await getSession()
@@ -43,9 +44,11 @@ export async function addTxnDivisi(payload: {
   amount: number
   desc: string
   date: string
+  attachmentUrl?: string
+  attachmentKey?: string
 }) {
   await requireDivisi()
-  const { divisionId, type, kategori, eventId, amount, desc, date } = payload
+  const { divisionId, type, kategori, eventId, amount, desc, date, attachmentUrl, attachmentKey } = payload
   const delta = type === 'masuk' ? amount : -amount
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -63,6 +66,8 @@ export async function addTxnDivisi(payload: {
         kategori,
         divisionId,
         eventId: kategori === 'event' && eventId ? eventId : null,
+        attachmentUrl: attachmentUrl || null,
+        attachmentKey: attachmentKey || null,
       },
     })
     await tx.activityLog.create({
@@ -84,7 +89,7 @@ export async function updateTxnDivisi(
   divisionId: string,
   oldAmount: number,
   oldType: 'masuk' | 'keluar',
-  payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string; kategori: 'harian' | 'event'; eventId?: string },
+  payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string; kategori: 'harian' | 'event'; eventId?: string; attachmentUrl?: string; attachmentKey?: string },
 ) {
   await requireDivisi()
   const reverseOld = oldType === 'masuk' ? -oldAmount : oldAmount
@@ -104,6 +109,8 @@ export async function updateTxnDivisi(
         date: new Date(payload.date),
         kategori: payload.kategori,
         eventId: payload.kategori === 'event' && payload.eventId ? payload.eventId : null,
+        attachmentUrl: payload.attachmentUrl !== undefined ? payload.attachmentUrl : undefined,
+        attachmentKey: payload.attachmentKey !== undefined ? payload.attachmentKey : undefined,
       },
     })
     await tx.activityLog.create({
@@ -120,9 +127,13 @@ export async function updateTxnDivisi(
   revalidatePath(`/divisi/${divisionId}`)
 }
 
-export async function deleteTxnDivisi(id: string, divisionId: string, amount: number, type: 'masuk' | 'keluar') {
+export async function deleteTxnDivisi(id: string, divisionId: string, amount: number, type: 'masuk' | 'keluar', attachmentKey?: string | null) {
   await requireDivisi()
   const delta = type === 'masuk' ? -amount : amount
+
+  if (attachmentKey) {
+    await deleteFromR2(attachmentKey)
+  }
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.transaction.delete({ where: { id } })
@@ -249,7 +260,7 @@ export async function deleteTxnDivisiForm(formData: FormData) {
   const divisionId = str(formData.get('divisionId'))
   const existing = await prisma.transaction.findUnique({ where: { id } })
   if (existing) {
-    await deleteTxnDivisi(id, divisionId, existing.amount, existing.type as 'masuk' | 'keluar')
+    await deleteTxnDivisi(id, divisionId, existing.amount, existing.type as 'masuk' | 'keluar', existing.attachmentKey)
   }
   redirect(`/divisi/${divisionId}`)
 }

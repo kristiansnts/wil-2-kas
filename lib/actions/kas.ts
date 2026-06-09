@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { Prisma } from '@/app/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { fmtShort } from '@/lib/format'
+import { deleteFromR2 } from '@/lib/r2'
 
 // --- FormData wrappers (no-JS fallback pages submit via native <form action>) ---
 // Each parses FormData, reuses the typed action above, then redirects back.
@@ -40,8 +41,10 @@ export async function addTxnUmum(payload: {
   date: string
   isTransfer: boolean
   refDivId?: string
+  attachmentUrl?: string
+  attachmentKey?: string
 }) {
-  const { type, amount, desc, date, isTransfer, refDivId } = payload
+  const { type, amount, desc, date, isTransfer, refDivId, attachmentUrl, attachmentKey } = payload
   const delta = type === 'masuk' ? amount : -amount
 
   let txnDesc = desc
@@ -67,6 +70,8 @@ export async function addTxnUmum(payload: {
         type,
         scope: 'umum',
         refDivId: isTransfer ? refDivId : null,
+        attachmentUrl: attachmentUrl || null,
+        attachmentKey: attachmentKey || null,
       },
     })
 
@@ -132,7 +137,7 @@ export async function updateTxnUmum(
   id: string,
   oldAmount: number,
   oldType: 'masuk' | 'keluar',
-  payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string },
+  payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string; attachmentUrl?: string; attachmentKey?: string },
 ) {
   const reverseOld = oldType === 'masuk' ? -oldAmount : oldAmount
   const applyNew = payload.type === 'masuk' ? payload.amount : -payload.amount
@@ -144,7 +149,14 @@ export async function updateTxnUmum(
     })
     await tx.transaction.update({
       where: { id },
-      data: { type: payload.type, amount: payload.amount, desc: payload.desc, date: new Date(payload.date) },
+      data: {
+        type: payload.type,
+        amount: payload.amount,
+        desc: payload.desc,
+        date: new Date(payload.date),
+        attachmentUrl: payload.attachmentUrl !== undefined ? payload.attachmentUrl : undefined,
+        attachmentKey: payload.attachmentKey !== undefined ? payload.attachmentKey : undefined,
+      },
     })
     await tx.activityLog.create({
       data: {
@@ -165,8 +177,13 @@ export async function deleteTxnUmum(
   amount: number,
   type: 'masuk' | 'keluar',
   refDivId: string | null,
+  attachmentKey?: string | null,
 ) {
   const delta = type === 'masuk' ? -amount : amount
+
+  if (attachmentKey) {
+    await deleteFromR2(attachmentKey)
+  }
 
   await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.kasUmum.update({
@@ -300,7 +317,7 @@ export async function deleteTxnUmumForm(formData: FormData) {
   const id = str(formData.get('id'))
   const existing = await prisma.transaction.findUnique({ where: { id } })
   if (existing) {
-    await deleteTxnUmum(id, existing.amount, existing.type as 'masuk' | 'keluar', existing.refDivId)
+    await deleteTxnUmum(id, existing.amount, existing.type as 'masuk' | 'keluar', existing.refDivId, existing.attachmentKey)
   }
   redirect('/')
 }

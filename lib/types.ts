@@ -14,6 +14,8 @@ export interface TxnUmumItem {
   amount: number
   type: TxnType
   refDivId: string | null
+  attachmentUrl?: string | null
+  attachmentKey?: string | null
 }
 
 export interface TxnDivisiItem {
@@ -24,6 +26,8 @@ export interface TxnDivisiItem {
   type: TxnType
   kategori: TxnKategori | null
   eventId: string | null
+  attachmentUrl?: string | null
+  attachmentKey?: string | null
 }
 
 export interface EventItem {

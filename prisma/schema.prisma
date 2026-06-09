@@ -33,19 +33,21 @@ model Event {
 }
 
 model Transaction {
-  id         String    @id @default(cuid())
-  date       DateTime
-  desc       String
-  amount     Float
-  type       String
-  scope      String
-  kategori   String?
-  divisionId String?
-  division   Division? @relation(fields: [divisionId], references: [id])
-  eventId    String?
-  event      Event?    @relation(fields: [eventId], references: [id])
-  refDivId   String?
-  createdAt  DateTime  @default(now())
+  id            String    @id @default(cuid())
+  date          DateTime
+  desc          String
+  amount        Float
+  type          String
+  scope         String
+  kategori      String?
+  divisionId    String?
+  division      Division? @relation(fields: [divisionId], references: [id])
+  eventId       String?
+  event         Event?    @relation(fields: [eventId], references: [id])
+  refDivId      String?
+  attachmentUrl String?
+  attachmentKey String?
+  createdAt     DateTime  @default(now())
 }
 
 model ActivityLog {

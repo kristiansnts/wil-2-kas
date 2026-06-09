@@ -63,10 +63,26 @@ function TxnRow({ txn, onEdit, onDelete, isPending }: { txn: TxnUmumItem; onEdit
   const [confirm, setConfirm] = useState(false)
   const isTransfer = !!txn.refDivId
   return (
-    <div className="txn-row">
+    <Link href={`/kas/transaksi/${txn.id}`} className="txn-row" style={{ textDecoration: 'none', color: 'inherit' }}>
       <div className={`txn-icon ${txn.type}`}>{txn.type === 'masuk' ? '↑' : '↓'}</div>
       <div className="txn-info">
-        <div className="txn-desc">{txn.desc}</div>
+        <div className="txn-desc">
+          {txn.desc}
+          {txn.attachmentUrl && (
+            <span
+              style={{
+                fontSize: 12,
+                color: 'var(--primary)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                marginLeft: 8,
+              }}
+            >
+              📎 Lampiran
+            </span>
+          )}
+        </div>
         <div className="txn-meta">
           <span className="txn-meta-date">{fmtDate(txn.date)}</span>
           <span className={`badge ${txn.type}`}>{txn.type}</span>
@@ -74,55 +90,83 @@ function TxnRow({ txn, onEdit, onDelete, isPending }: { txn: TxnUmumItem; onEdit
         </div>
       </div>
       {confirm ? (
-        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }} onClick={(e) => e.preventDefault()}>
           <button
-            onClick={() => { setConfirm(false); onDelete() }}
+            onClick={(e) => { e.preventDefault(); setConfirm(false); onDelete() }}
             disabled={isPending}
             style={{ fontSize: 12, padding: '5px 12px', borderRadius: 8, border: 'none', background: 'var(--red)', color: 'white', cursor: 'pointer', fontWeight: 600 }}
           >Hapus</button>
           <button
-            onClick={() => setConfirm(false)}
+            onClick={(e) => { e.preventDefault(); setConfirm(false) }}
             style={{ fontSize: 12, padding: '5px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer' }}
           >Batal</button>
         </div>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }} onClick={(e) => e.preventDefault()}>
           <div className={`txn-amount ${txn.type}`}>
             {txn.type === 'masuk' ? '+' : '-'}{fmtShort(txn.amount)}
           </div>
           {!isTransfer && (
-            <Link href={`/kas/transaksi/${txn.id}/edit`} onClick={e => { e.preventDefault(); onEdit() }} style={{ ...btnIcon, background: 'var(--accent)', color: 'white', textDecoration: 'none' }}>
+            <button onClick={(e) => { e.preventDefault(); onEdit() }} style={{ ...btnIcon, background: 'var(--accent)', color: 'white', border: 'none' }}>
               <Icon name="pencil" size={15} />
-            </Link>
+            </button>
           )}
-          <Link href={`/kas/transaksi/${txn.id}/hapus`} onClick={e => { e.preventDefault(); setConfirm(true) }} style={{ ...btnIcon, background: 'var(--red)', color: 'white', textDecoration: 'none' }}>
+          <button onClick={(e) => { e.preventDefault(); setConfirm(true) }} style={{ ...btnIcon, background: 'var(--red)', color: 'white', border: 'none' }}>
             <Icon name="trash" size={15} />
-          </Link>
+          </button>
         </div>
       )}
-    </div>
+    </Link>
   )
 }
 
 function FormEditTxnUmumSheet({ txn, onClose, onSave, isPending }: {
   txn: TxnUmumItem
   onClose: () => void
-  onSave: (payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string }) => void
+  onSave: (payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string; attachmentUrl?: string; attachmentKey?: string }) => void
   isPending: boolean
 }) {
   const [tipe, setTipe] = useState(txn.type)
   const [jumlah, setJumlah] = useState(String(txn.amount))
   const [keterangan, setKeterangan] = useState(txn.desc)
   const [tanggal, setTanggal] = useState(txn.date.slice(0, 10))
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
   const submittingRef = useRef(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (submittingRef.current || isPending) return
+    if (submittingRef.current || isPending || uploading) return
     const amount = parseInt(jumlah) || 0
     if (!amount || !keterangan) return
     submittingRef.current = true
-    onSave({ type: tipe, amount, desc: keterangan, date: tanggal })
+
+    let attachmentUrl = txn.attachmentUrl || ''
+    let attachmentKey = txn.attachmentKey || ''
+
+    if (file) {
+      setUploading(true)
+      const formData = new FormData()
+      formData.append('file', file)
+      try {
+        const res = await fetch('/api/upload-transaction', {
+          method: 'POST',
+          body: formData,
+        })
+        const result = await res.json()
+        if (!result.success) throw new Error(result.error || 'Upload failed')
+        attachmentUrl = result.url
+        attachmentKey = result.key
+      } catch (err) {
+        alert('Gagal mengunggah file: ' + (err instanceof Error ? err.message : 'Unknown error'))
+        submittingRef.current = false
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
+
+    onSave({ type: tipe, amount, desc: keterangan, date: tanggal, attachmentUrl, attachmentKey })
   }
 
   return (
@@ -150,8 +194,31 @@ function FormEditTxnUmumSheet({ txn, onClose, onSave, isPending }: {
             <label className="form-label">Tanggal</label>
             <DateInput className="form-input" value={tanggal} onChange={setTanggal} required />
           </div>
-          <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
-            {isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
+          <div className="form-group">
+            <label className="form-label">Lampiran (Opsional)</label>
+            {txn.attachmentUrl && !file && (
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 8 }}>
+                <a href={txn.attachmentUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary)' }}>
+                  📎 Lampiran saat ini
+                </a>
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+              capture="environment"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="form-input"
+              style={{ padding: '8px' }}
+            />
+            {file && (
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>
+                {file.name} ({(file.size / 1024).toFixed(0)} KB)
+              </div>
+            )}
+          </div>
+          <button type="submit" className="submit-btn" disabled={isPending || uploading} style={{ marginTop: 4 }}>
+            {uploading ? 'Mengunggah...' : isPending ? 'Menyimpan...' : 'Simpan Perubahan'}
           </button>
         </form>
       </div>
@@ -197,15 +264,43 @@ function FormTxnUmumSheet({ tipeInit, onClose, onSave, isPending }: {
   const [jumlah, setJumlah] = useState('')
   const [keterangan, setKeterangan] = useState('')
   const [tanggal, setTanggal] = useState(todayStr())
+  const [file, setFile] = useState<File | null>(null)
+  const [uploading, setUploading] = useState(false)
   const submittingRef = useRef(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (submittingRef.current || isPending) return
+    if (submittingRef.current || isPending || uploading) return
     const amount = parseInt(jumlah) || 0
     if (!amount || !keterangan) return
     submittingRef.current = true
-    onSave({ type: tipe, amount, desc: keterangan, date: tanggal, isTransfer: false })
+
+    let attachmentUrl = ''
+    let attachmentKey = ''
+
+    if (file) {
+      setUploading(true)
+      const formData = new FormData()
+      formData.append('file', file)
+      try {
+        const res = await fetch('/api/upload-transaction', {
+          method: 'POST',
+          body: formData,
+        })
+        const result = await res.json()
+        if (!result.success) throw new Error(result.error || 'Upload failed')
+        attachmentUrl = result.url
+        attachmentKey = result.key
+      } catch (err) {
+        alert('Gagal mengunggah file: ' + (err instanceof Error ? err.message : 'Unknown error'))
+        submittingRef.current = false
+        setUploading(false)
+        return
+      }
+      setUploading(false)
+    }
+
+    onSave({ type: tipe, amount, desc: keterangan, date: tanggal, isTransfer: false, attachmentUrl, attachmentKey })
   }
 
   return (
@@ -233,8 +328,24 @@ function FormTxnUmumSheet({ tipeInit, onClose, onSave, isPending }: {
             <label className="form-label">Tanggal</label>
             <DateInput className="form-input" value={tanggal} onChange={setTanggal} required />
           </div>
-          <button type="submit" className="submit-btn" disabled={isPending} style={{ marginTop: 4 }}>
-            {isPending ? 'Menyimpan...' : 'Simpan'}
+          <div className="form-group">
+            <label className="form-label">Lampiran (Opsional)</label>
+            <input
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+              capture="environment"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="form-input"
+              style={{ padding: '8px' }}
+            />
+            {file && (
+              <div style={{ fontSize: 13, color: 'var(--muted)', marginTop: 6 }}>
+                {file.name} ({(file.size / 1024).toFixed(0)} KB)
+              </div>
+            )}
+          </div>
+          <button type="submit" className="submit-btn" disabled={isPending || uploading} style={{ marginTop: 4 }}>
+            {uploading ? 'Mengunggah...' : isPending ? 'Menyimpan...' : 'Simpan'}
           </button>
         </form>
       </div>
@@ -611,11 +722,11 @@ export default function KasUmumClient({ balance, divisions, transactions, meetin
 
   function handleDeleteTxn(txn: TxnUmumItem) {
     startTransition(async () => {
-      await deleteTxnUmum(txn.id, txn.amount, txn.type, txn.refDivId)
+      await deleteTxnUmum(txn.id, txn.amount, txn.type, txn.refDivId, txn.attachmentKey)
     })
   }
 
-  function handleUpdateTxn(payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string }) {
+  function handleUpdateTxn(payload: { type: 'masuk' | 'keluar'; amount: number; desc: string; date: string; attachmentUrl?: string; attachmentKey?: string }) {
     if (!editTxn) return
     startTransition(async () => {
       await updateTxnUmum(editTxn.id, editTxn.amount, editTxn.type, payload)
