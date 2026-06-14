@@ -18,6 +18,16 @@ function parseYcSession(req: NextRequest): { role: 'admin' } | null {
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  // Static files in public/ — YC participants have no kas-session
+  if (
+    pathname.startsWith('/group-icon/') ||
+    pathname.startsWith('/sound/') ||
+    pathname.startsWith('/qr/') ||
+    pathname.startsWith('/treasure-hunt/')
+  ) {
+    return NextResponse.next()
+  }
+
   if (pathname.startsWith('/yc/')) {
     if (
       pathname.startsWith('/yc/p/') ||
