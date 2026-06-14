@@ -2,6 +2,8 @@ import { getKasUmumData } from '@/lib/actions/kas'
 import { prisma } from '@/lib/prisma'
 import KasUmumClient from '@/components/kas/KasUmumClient'
 
+export const dynamic = 'force-dynamic'
+
 export default async function Page() {
   const [{ kasUmum, divisions, transactions }, meetings] = await Promise.all([
     getKasUmumData(),

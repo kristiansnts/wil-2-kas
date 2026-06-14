@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-06-12T14:36:13.550Z",
+  "challengeSlug": "treasure-hunt",
+  "fragments": [
+    {
+      "order": 1,
+      "code": "yc-fragment-01",
+      "file": "/treasure-hunt/fragment-01.webp",
+      "question": "Siapa orang pertama dalam Alkitab yang disebut \"penuh dengan Roh Allah\"?"
+    },
+    {
+      "order": 2,
+      "code": "yc-fragment-02",
+      "file": "/treasure-hunt/fragment-02.webp",
+      "question": "Ketika Yesus memberi makan 5.000 orang, siapa yang membawa lima roti dan dua ikan?"
+    },
+    {
+      "order": 3,
+      "code": "yc-fragment-03",
+      "file": "/treasure-hunt/fragment-03.webp",
+      "question": "Siapa yang tidur di dalam perahu ketika badai besar terjadi?"
+    },
+    {
+      "order": 4,
+      "code": "yc-fragment-04",
+      "file": "/treasure-hunt/fragment-04.webp",
+      "question": "Siapa orang yang naik ke surga tanpa mengalami kematian?"
+    },
+    {
+      "order": 5,
+      "code": "yc-fragment-05",
+      "file": "/treasure-hunt/fragment-05.webp",
+      "question": "Apa mukjizat pertama yang dicatat dilakukan Yesus?"
+    },
+    {
+      "order": 6,
+      "code": "yc-fragment-06",
+      "file": "/treasure-hunt/fragment-06.webp",
+      "question": "Dalam perumpamaan Orang Samaria yang Baik Hati, siapa yang lewat lebih dulu sebelum orang Samaria datang?"
+    },
+    {
+      "order": 7,
+      "code": "yc-fragment-07",
+      "file": "/treasure-hunt/fragment-07.webp",
+      "question": "Ketika Daud melawan Goliat, berapa batu yang dia ambil dari sungai?"
+    },
+    {
+      "order": 8,
+      "code": "yc-fragment-08",
+      "file": "/treasure-hunt/fragment-08.webp",
+      "question": "Dalam kisah Yunus, siapa yang sebenarnya \"menyuruh\" ikan besar menelan Yunus?"
+    }
+  ]
+}

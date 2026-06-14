@@ -9,8 +9,31 @@ function parseSession(req: NextRequest): Session | null {
   try { return JSON.parse(decodeURIComponent(val)) } catch { return null }
 }
 
+function parseYcSession(req: NextRequest): { role: 'admin' } | null {
+  const val = req.cookies.get('yc-session')?.value
+  if (!val) return null
+  try { return JSON.parse(decodeURIComponent(val)) } catch { return null }
+}
+
 export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  if (pathname.startsWith('/yc/')) {
+    if (
+      pathname.startsWith('/yc/p/') ||
+      pathname.startsWith('/yc/api/') ||
+      pathname === '/yc/admin/login'
+    ) return NextResponse.next()
+
+    if (pathname.startsWith('/yc/admin')) {
+      if (!parseYcSession(req)) {
+        return NextResponse.redirect(new URL('/yc/admin/login', req.url))
+      }
+      return NextResponse.next()
+    }
+
+    return NextResponse.next()
+  }
 
   if (pathname.startsWith('/login')) return NextResponse.next()
   if (pathname.startsWith('/meeting/')) return NextResponse.next()

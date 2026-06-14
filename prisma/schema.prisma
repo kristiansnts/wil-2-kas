@@ -112,3 +112,279 @@ model WadahEntry {
   divisionId   String
   amount       Int
 }
+
+// ─── Youth Camp (YC) ───────────────────────────────────────────────────────
+
+enum YcChallengeType {
+  INDIVIDUAL
+  TEAM
+}
+
+enum YcSubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum YcGalleryUploadStatus {
+  QUEUED
+  UPLOADING
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  FAILED
+}
+
+enum YcTeamSessionStatus {
+  EXPLORING
+  EMERGENCY
+  WAITING
+  QUIZ_OPEN
+  COMPLETED
+  FAILED
+}
+
+enum YcGender {
+  MALE
+  FEMALE
+}
+
+enum YcNametagPairingStatus {
+  OPEN
+  COMPLETED
+}
+
+model YcGroup {
+  id                          String   @id @default(cuid())
+  slug                        String   @unique
+  name                        String
+  points                      Int      @default(0)
+  captainParticipantId        String?  @unique
+  contentCreatorParticipantId String?  @unique
+  captain                     YcParticipant? @relation("YcGroupCaptain", fields: [captainParticipantId], references: [id], onDelete: SetNull)
+  contentCreator              YcParticipant? @relation("YcGroupContentCreator", fields: [contentCreatorParticipantId], references: [id], onDelete: SetNull)
+  participants                YcParticipant[] @relation("YcParticipantGroup")
+  submissions                 YcChallengeSubmission[]
+  teamSessions                YcTeamChallengeSession[]
+  galleryUploads              YcGalleryUpload[]
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+}
+
+model YcParticipant {
+  id              String   @id @default(cuid())
+  token           String   @unique
+  isComitee       Boolean   @default(false) @map("is_comitee")
+  isSubmitForm    Boolean   @default(false)
+  name            String?
+  gender          YcGender?
+  churchName      String?
+  groupId         String?
+  serviceInterest Json?
+  instagram       String?
+  tiktok          String?
+  group           YcGroup? @relation("YcParticipantGroup", fields: [groupId], references: [id], onDelete: SetNull)
+  captainOf       YcGroup[] @relation("YcGroupCaptain")
+  contentCreatorOf YcGroup[] @relation("YcGroupContentCreator")
+  submissions     YcChallengeSubmission[]
+  readyChecks       YcTeamReadyCheck[]
+  quizAttempts      YcQuizAttempt[]
+  quizVotes         YcQuizVote[]
+  galleryUploads    YcGalleryUpload[]
+  emergencyTriggers YcTeamChallengeSession[] @relation("YcEmergencyTrigger")
+  nametagPairingsLow YcNametagPairing[] @relation("YcNametagPairLow")
+  nametagPairingsHigh YcNametagPairing[] @relation("YcNametagPairHigh")
+  nametagPairingsInitiated YcNametagPairing[] @relation("YcNametagPairInitiator")
+  nametagStories YcNametagStory[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model YcChallenge {
+  id              String          @id @default(cuid())
+  title           String
+  slug            String          @unique
+  type            YcChallengeType
+  description     String?
+  points          Int             @default(100)
+  isActive        Boolean         @default(true)
+  submissions     YcChallengeSubmission[]
+  quizQuestions   YcQuizQuestion[]
+  teamSessions    YcTeamChallengeSession[]
+  nametagPairings YcNametagPairing[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model YcNametagPairing {
+  id                       String                 @id @default(cuid())
+  challengeId              String
+  participantLowId         String
+  participantHighId        String
+  initiatedByParticipantId String
+  status                   YcNametagPairingStatus @default(OPEN)
+  completedAt              DateTime?
+  challenge                YcChallenge            @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  participantLow           YcParticipant          @relation("YcNametagPairLow", fields: [participantLowId], references: [id], onDelete: Cascade)
+  participantHigh          YcParticipant          @relation("YcNametagPairHigh", fields: [participantHighId], references: [id], onDelete: Cascade)
+  initiatedBy              YcParticipant          @relation("YcNametagPairInitiator", fields: [initiatedByParticipantId], references: [id], onDelete: Cascade)
+  stories                  YcNametagStory[]
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+
+  @@unique([challengeId, participantLowId, participantHighId])
+}
+
+model YcNametagStory {
+  id                  String                 @id @default(cuid())
+  pairingId           String
+  authorParticipantId String
+  storyText           String
+  charCount           Int
+  pointsAwarded       Int                    @default(0)
+  submissionId        String?                @unique
+  pairing             YcNametagPairing       @relation(fields: [pairingId], references: [id], onDelete: Cascade)
+  author              YcParticipant          @relation(fields: [authorParticipantId], references: [id], onDelete: Cascade)
+  submission          YcChallengeSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  submittedAt         DateTime               @default(now())
+
+  @@unique([pairingId, authorParticipantId])
+}
+
+model YcChallengeSubmission {
+  id            String             @id @default(cuid())
+  challengeId   String
+  participantId String?
+  groupId       String?
+  answerText    String?
+  mediaUrl      String?
+  driveFileId   String?
+  status        YcSubmissionStatus @default(PENDING)
+  pointsAwarded Int                @default(0)
+  challenge     YcChallenge        @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  participant   YcParticipant?     @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  group         YcGroup?           @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  galleryUpload YcGalleryUpload?
+  nametagStory  YcNametagStory?
+  submittedAt   DateTime           @default(now())
+  reviewedAt    DateTime?
+}
+
+model YcTeamChallengeSession {
+  id                       String              @id @default(cuid())
+  groupId                  String
+  challengeId              String
+  status                   YcTeamSessionStatus @default(EXPLORING)
+  emergencyCalledAt        DateTime?
+  completedAt              DateTime?
+  retryAvailableAt         DateTime?
+  currentQuestionId        String?
+  quizOpenedAt             DateTime?
+  triggeredByParticipantId String?
+  group                    YcGroup             @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  challenge                YcChallenge         @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  triggeredBy              YcParticipant?      @relation("YcEmergencyTrigger", fields: [triggeredByParticipantId], references: [id], onDelete: SetNull)
+  readyChecks              YcTeamReadyCheck[]
+  quizAttempts             YcQuizAttempt[]
+  quizVotes                YcQuizVote[]
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+
+  @@unique([groupId, challengeId])
+}
+
+model YcTeamReadyCheck {
+  id            String                 @id @default(cuid())
+  sessionId     String
+  participantId String
+  isReady       Boolean                @default(false)
+  readyAt       DateTime?
+  session       YcTeamChallengeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant   YcParticipant          @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@unique([sessionId, participantId])
+}
+
+model YcQuizQuestion {
+  id              String          @id @default(cuid())
+  challengeId     String
+  fragmentOrder   Int             @default(0)
+  fragmentQrCode  String?         @unique
+  question        String
+  optionA         String
+  optionB         String
+  optionC         String
+  optionD         String
+  correctAnswer   String
+  explanation     String?
+  challenge       YcChallenge     @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  attempts        YcQuizAttempt[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model YcQuizAttempt {
+  id                       String                 @id @default(cuid())
+  sessionId                String
+  questionId               String
+  attemptedByParticipantId String?
+  selectedAnswer           String
+  isCorrect                Boolean
+  session                  YcTeamChallengeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  question                 YcQuizQuestion         @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  attemptedBy              YcParticipant?         @relation(fields: [attemptedByParticipantId], references: [id], onDelete: SetNull)
+  attemptedAt              DateTime               @default(now())
+}
+
+model YcQuizVote {
+  id            String                 @id @default(cuid())
+  sessionId     String
+  participantId String
+  questionId    String
+  selectedAnswer String
+  session       YcTeamChallengeSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participant   YcParticipant          @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  votedAt       DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  @@unique([sessionId, participantId])
+}
+
+model YcGalleryUpload {
+  id               String                @id @default(cuid())
+  participantId    String?
+  groupId          String?
+  uploadType       String                @default("personal")
+  status           YcGalleryUploadStatus @default(QUEUED)
+  mediaUrl         String?
+  driveFileId      String?
+  caption          String?
+  originalFilename String?
+  mimeType         String?
+  fileSizeBytes    Int?
+  reviewComment    String?
+  errorMessage     String?
+  isFeatured       Boolean               @default(false)
+  submissionId     String?               @unique
+  submission       YcChallengeSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  participant      YcParticipant?        @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  group            YcGroup?              @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  uploadedAt       DateTime              @default(now())
+  reviewedAt       DateTime?
+  updatedAt        DateTime              @updatedAt
+}
+
+model YcSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model YcFormSubmission {
+  id        String   @id @default(cuid())
+  answer    String
+  createdAt DateTime @default(now())
+}
