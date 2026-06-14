@@ -30,6 +30,9 @@ export type YcGender = (typeof GENDER_OPTIONS)[number]['value']
 export const YC_SETTING_KEYS = {
   rundownPdfUrl: 'rundown_pdf_url',
   kamarPdfUrl: 'kamar_pdf_url',
+  featureEmergencyAlarm: 'feature_emergency_alarm',
+  featureTeamChallenge: 'feature_team_challenge',
+  featureWorshipForm: 'feature_worship_form',
 } as const
 
 /** Google Drive rundown — embed pakai /preview */

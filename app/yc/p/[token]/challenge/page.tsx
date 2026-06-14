@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import ChallengeListClient from '@/components/yc/participant/ChallengeListClient'
+import { getParticipantFeatureFlags } from '@/lib/yc/features'
 import { requireParticipantPage } from '@/lib/yc/page-guard'
 import { YC_SIPALING_EXTROVERT_SLUG, YC_TUKANG_NGONTEN_SLUG } from '@/lib/yc/constants'
 
@@ -7,10 +8,16 @@ type Props = { params: Promise<{ token: string }> }
 
 export default async function ChallengeListPage({ params }: Props) {
   const { token } = await params
-  const participant = await requireParticipantPage(token)
+  const [participant, features] = await Promise.all([
+    requireParticipantPage(token),
+    getParticipantFeatureFlags(),
+  ])
 
   const challenges = await prisma.ycChallenge.findMany({
-    where: { isActive: true },
+    where: {
+      isActive: true,
+      ...(features.teamChallenge ? {} : { type: { not: 'TEAM' } }),
+    },
     orderBy: [{ type: 'asc' }, { title: 'asc' }],
   })
 

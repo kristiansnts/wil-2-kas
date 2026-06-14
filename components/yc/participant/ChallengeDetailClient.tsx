@@ -20,9 +20,11 @@ type Challenge = {
 export default function ChallengeDetailClient({
   token,
   challenge,
+  showEmergencyAlarm = false,
 }: {
   token: string
   challenge: Challenge
+  showEmergencyAlarm?: boolean
 }) {
   const router = useRouter()
   const [answerText, setAnswerText] = useState('')
@@ -53,7 +55,13 @@ export default function ChallengeDetailClient({
   }
 
   if (challenge.type === 'TEAM') {
-    return <TeamChallengeClient token={token} challenge={challenge} />
+    return (
+      <TeamChallengeClient
+        token={token}
+        challenge={challenge}
+        showEmergencyAlarm={showEmergencyAlarm}
+      />
+    )
   }
 
   return (

@@ -6,6 +6,7 @@ import { requireYcAdmin } from '@/lib/yc/session'
 import { adjustGroupPoints } from '@/lib/yc/points'
 import { setYcSetting } from '@/lib/yc/settings'
 import { YC_SETTING_KEYS } from '@/lib/yc/constants'
+import type { YcParticipantFeatureFlags } from '@/lib/yc/types'
 import { adminForceOpenQuiz, buildEmergencyStatus } from '@/lib/yc/emergency'
 
 export async function adjustPoints(groupId: string, delta: number) {
@@ -22,6 +23,18 @@ export async function updateSettingUrl(key: 'rundown' | 'kamar', url: string) {
     key === 'rundown' ? YC_SETTING_KEYS.rundownPdfUrl : YC_SETTING_KEYS.kamarPdfUrl
   await setYcSetting(settingKey, url)
   revalidatePath(`/yc/admin/settings/${key === 'rundown' ? 'rundown' : 'kamar'}`)
+  return { ok: true }
+}
+
+export async function updateFeatureFlags(flags: YcParticipantFeatureFlags) {
+  await requireYcAdmin()
+  await Promise.all([
+    setYcSetting(YC_SETTING_KEYS.featureEmergencyAlarm, flags.emergencyAlarm ? '1' : '0'),
+    setYcSetting(YC_SETTING_KEYS.featureTeamChallenge, flags.teamChallenge ? '1' : '0'),
+    setYcSetting(YC_SETTING_KEYS.featureWorshipForm, flags.worshipForm ? '1' : '0'),
+  ])
+  revalidatePath('/yc/admin/settings/features')
+  revalidatePath('/yc/p', 'layout')
   return { ok: true }
 }
 

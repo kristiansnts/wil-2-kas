@@ -25,9 +25,11 @@ function isExploring(status: string | null) {
 export default function TeamChallengeClient({
   token,
   challenge,
+  showEmergencyAlarm = false,
 }: {
   token: string
   challenge: Challenge
+  showEmergencyAlarm?: boolean
 }) {
   const [teamStatus, setTeamStatus] = useState(challenge.teamStatus)
   const [fragmentsRecovered] = useState(challenge.fragmentsRecovered ?? 0)
@@ -90,7 +92,7 @@ export default function TeamChallengeClient({
         </div>
       )}
 
-      <EmergencySoundToggle />
+      {showEmergencyAlarm && <EmergencySoundToggle />}
 
       <div className="stat-pill">
         <div className="stat-pill-label">Memory Fragment</div>

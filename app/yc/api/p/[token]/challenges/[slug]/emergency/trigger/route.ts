@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { guardTeamChallengeAccess } from '@/lib/yc/features'
 import { jsonError, withParticipant } from '@/lib/yc/api-helpers'
 import { triggerEmergency, buildEmergencyStatus } from '@/lib/yc/emergency'
 import { parseScannedQrCode } from '@/lib/yc/parse-qr-scan'
@@ -8,6 +9,8 @@ type Params = { params: Promise<{ token: string; slug: string }> }
 
 export async function POST(req: Request, { params }: Params) {
   const { token, slug } = await params
+  const blocked = await guardTeamChallengeAccess(slug)
+  if (blocked) return blocked
   const result = await withParticipant(token)
   if ('error' in result) return result.error
 

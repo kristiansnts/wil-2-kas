@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { YC_BRAND } from '@/lib/yc/constants'
-import type { YcParticipantPublic } from '@/lib/yc/types'
+import type { YcParticipantFeatureFlags, YcParticipantPublic } from '@/lib/yc/types'
 import EmergencySoundToggle from '@/components/yc/participant/EmergencySoundToggle'
 
 const MENUS = [
@@ -11,11 +11,18 @@ const MENUS = [
   { href: 'group', label: 'Kelompok', icon: '👥', color: '#fde8e8' },
   { href: 'dokumentasi', label: 'Dokumentasi', icon: '📸', color: '#fff4e6' },
   { href: 'challenge', label: 'Challenge', icon: '🏆', color: '#f3e8ff' },
-  { href: 'form', label: 'Form', icon: '📝', color: '#e0f2fe' },
+  { href: 'form', label: 'Form', icon: '📝', color: '#e0f2fe', feature: 'worshipForm' as const },
 ] as const
 
-export default function DashboardClient({ participant }: { participant: YcParticipantPublic }) {
+export default function DashboardClient({
+  participant,
+  features,
+}: {
+  participant: YcParticipantPublic
+  features: YcParticipantFeatureFlags
+}) {
   const base = `/yc/p/${participant.token}`
+  const menus = MENUS.filter(m => !('feature' in m) || features[m.feature])
 
   return (
     <div className="screen">
@@ -37,10 +44,10 @@ export default function DashboardClient({ participant }: { participant: YcPartic
           )}
         </div>
 
-        <EmergencySoundToggle />
+        {features.emergencyAlarm && <EmergencySoundToggle />}
 
         <div className="actions-grid">
-          {MENUS.map(m => (
+          {menus.map(m => (
             <Link key={m.href} href={`${base}/${m.href}`} className="action-btn">
               <div className="action-icon" style={{ background: m.color }}>{m.icon}</div>
               <div className="action-label">{m.label}</div>

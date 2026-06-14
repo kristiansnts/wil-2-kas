@@ -7,6 +7,12 @@ export type YcGroupSummary = {
   points: number
 }
 
+export type YcParticipantFeatureFlags = {
+  emergencyAlarm: boolean
+  teamChallenge: boolean
+  worshipForm: boolean
+}
+
 export type YcParticipantPublic = {
   id: string
   token: string

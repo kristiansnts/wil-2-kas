@@ -16,6 +16,7 @@ export default function AdminDashboardClient({
     { href: '/yc/admin/submissions', label: 'Submissions', icon: '📝' },
     { href: '/yc/admin/emergency', label: 'Emergency', icon: '🚨' },
     { href: '/yc/admin/leaderboard', label: 'Leaderboard', icon: '🏆' },
+    { href: '/yc/admin/settings/features', label: 'Fitur Peserta', icon: '🎛️' },
     { href: '/yc/admin/settings/rundown', label: 'Rundown PDF', icon: '📋' },
     { href: '/yc/admin/settings/kamar', label: 'Kamar PDF', icon: '🛏️' },
   ]

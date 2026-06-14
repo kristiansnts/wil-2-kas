@@ -163,6 +163,9 @@ async function main() {
     data: [
       { key: 'rundown_pdf_url', value: YC_DEFAULT_PDFS.rundown },
       { key: 'kamar_pdf_url', value: '/yc/docs/kamar.pdf' },
+      { key: 'feature_emergency_alarm', value: '0' },
+      { key: 'feature_team_challenge', value: '0' },
+      { key: 'feature_worship_form', value: '0' },
     ],
   })
 

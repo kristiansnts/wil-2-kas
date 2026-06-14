@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import ScanConfirmPanel from '@/components/yc/participant/ScanConfirmPanel'
 import { FormShell } from '@/components/forms/FormShell'
+import { getParticipantFeatureFlags, isTeamChallengeSlug } from '@/lib/yc/features'
 import { requireParticipantPage } from '@/lib/yc/page-guard'
 import { prisma } from '@/lib/prisma'
 import { buildEmergencyStatus } from '@/lib/yc/emergency'
@@ -9,8 +10,12 @@ type Props = { params: Promise<{ token: string; slug: string; qrCode: string }> 
 
 export default async function ChallengeScanPage({ params }: Props) {
   const { token, slug, qrCode } = await params
-  const participant = await requireParticipantPage(token)
+  const [participant, features] = await Promise.all([
+    requireParticipantPage(token),
+    getParticipantFeatureFlags(),
+  ])
   if (!participant.groupId) notFound()
+  if (isTeamChallengeSlug(slug) && !features.teamChallenge) notFound()
 
   const challenge = await prisma.ycChallenge.findUnique({ where: { slug } })
   if (!challenge || challenge.type !== 'TEAM') notFound()

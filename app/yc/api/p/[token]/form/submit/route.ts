@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { guardWorshipFormAccess } from '@/lib/yc/features'
 import { prisma } from '@/lib/prisma'
 import { jsonError, withParticipant } from '@/lib/yc/api-helpers'
 
@@ -6,6 +7,8 @@ type Params = { params: Promise<{ token: string }> }
 
 export async function POST(req: Request, { params }: Params) {
   const { token } = await params
+  const blocked = await guardWorshipFormAccess()
+  if (blocked) return blocked
   const auth = await withParticipant(token)
   if ('error' in auth) return auth.error
 
