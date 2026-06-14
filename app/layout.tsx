@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { DM_Sans } from 'next/font/google'
+import Script from 'next/script'
 import './globals.css'
 
 const dmSans = DM_Sans({
@@ -54,8 +55,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="id" className={dmSans.className}>
       <body>
         {children}
-        <script dangerouslySetInnerHTML={{ __html: RUPIAH_SCRIPT }} />
-        <script dangerouslySetInnerHTML={{ __html: KEYBOARD_NAV_SCRIPT }} />
+        <Script id="rupiah-formatter" strategy="beforeInteractive">
+          {RUPIAH_SCRIPT}
+        </Script>
+        <Script id="keyboard-nav" strategy="beforeInteractive">
+          {KEYBOARD_NAV_SCRIPT}
+        </Script>
       </body>
     </html>
   )
