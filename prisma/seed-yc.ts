@@ -8,6 +8,7 @@ import QRCode from 'qrcode'
 import sharp from 'sharp'
 import { getDatabaseUrl } from '../lib/database-url'
 import { YC_DEFAULT_PDFS, YC_GROUP_SEED } from '../lib/yc/constants'
+import { buildParticipantUrl, normalizeQrBaseUrl, resolveQrBaseUrl } from '../lib/yc/participant-url'
 import { TREASURE_HUNT_QUIZ_SEED, treasureHuntFragmentCode } from '../lib/yc/treasure-hunt'
 
 const adapter = new PrismaPg({ connectionString: getDatabaseUrl() })
@@ -20,11 +21,6 @@ const TREASURE_HUNT_QR_DIR = path.join(process.cwd(), 'public', 'treasure-hunt')
 
 function padNum(n: number, width: number) {
   return String(n).padStart(width, '0')
-}
-
-function participantUrl(baseUrl: string, token: string) {
-  const base = baseUrl.replace(/\/$/, '')
-  return `${base}/yc/p/${token}`
 }
 
 function shuffle<T>(items: T[]): T[] {
@@ -51,10 +47,7 @@ async function generateQrWebp(url: string, outPath: string) {
 }
 
 async function main() {
-  const baseUrl =
-    process.env.YC_QR_BASE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_APP_URL?.trim() ||
-    'http://localhost:3000'
+  const baseUrl = normalizeQrBaseUrl(resolveQrBaseUrl())
 
   console.log('Seeding YC data...')
   console.log(`QR base URL: ${baseUrl}`)
@@ -191,7 +184,7 @@ async function main() {
   for (let i = 0; i < comiteeTokens.length; i++) {
     const no = i + 1
     const token = comiteeTokens[i]
-    const url = participantUrl(baseUrl, token)
+    const url = buildParticipantUrl(baseUrl, token)
     const file = `/qr/panitia/${padNum(no, 2)}.webp`
     await generateQrWebp(url, path.join(panitiaDir, `${padNum(no, 2)}.webp`))
     manifest.panitia.push({ no, token, url, file })
@@ -200,7 +193,7 @@ async function main() {
   for (let i = 0; i < participantTokens.length; i++) {
     const no = i + 1
     const token = participantTokens[i]
-    const url = participantUrl(baseUrl, token)
+    const url = buildParticipantUrl(baseUrl, token)
     const file = `/qr/peserta/${padNum(no, 3)}.webp`
     await generateQrWebp(url, path.join(pesertaDir, `${padNum(no, 3)}.webp`))
     manifest.peserta.push({ no, token, url, file })
