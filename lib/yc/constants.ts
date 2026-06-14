@@ -61,5 +61,5 @@ export const YC_TEAM_CHALLENGE_SLUG = 'treasure-hunt'
 export const YC_QUIZ_ANSWER_SECONDS = 10
 export const YC_QUIZ_RETRY_SECONDS = 30
 
-export const YC_EMERGENCY_SOUND_PATH = '/sound/escalation.wav'
+export const YC_EMERGENCY_SOUND_PATH = '/sound/escalation.mp3'
 export const YC_EMERGENCY_SOUND_STORAGE_KEY = 'yc-emergency-sound'

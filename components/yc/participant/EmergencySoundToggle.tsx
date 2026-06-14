@@ -22,7 +22,9 @@ export default function EmergencySoundToggle() {
     const ok = await testEmergencySound()
     setLoading(false)
     if (!ok) {
-      setAlert('Gagal memutar suara. Pastikan volume perangkat aktif dan coba lagi.')
+      setAlert(
+        'Gagal memuat atau memutar suara alarm. Pastikan koneksi internet stabil, volume perangkat aktif (bukan mode senyap), lalu coba lagi.',
+      )
       return
     }
     setEmergencySoundEnabled(true)
