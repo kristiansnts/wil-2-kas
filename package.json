@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed-yc": "npx tsx prisma/seed-yc.ts",
-    "db:regenerate-yc-qr": "npx tsx prisma/regenerate-yc-qr.ts"
+    "db:regenerate-yc-qr": "npx tsx prisma/regenerate-yc-qr.ts",
+    "db:generate-yc-qr-cards": "npx tsx prisma/generate-yc-qr-cards.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1063.0",
