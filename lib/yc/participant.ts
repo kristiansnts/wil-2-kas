@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
-import type { YcParticipantPublic } from './types'
+import type { YcParticipantPublic, YcParticipantIndividualPoints } from './types'
 import type { ServiceInterest } from './constants'
+import { YC_SIPALING_EXTROVERT_SLUG, YC_TUKANG_NGONTEN_SLUG } from './constants'
 
 function formatChurch(raw: string | null): string | null {
   if (!raw) return null
@@ -76,4 +77,32 @@ export function isGroupContentCreator(participant: {
   group: { contentCreator: { id: string } | null } | null
 }): boolean {
   return participant.group?.contentCreator?.id === participant.id
+}
+
+/** Personal upload + extrovert story points (not kelompok leaderboard). */
+export async function getParticipantIndividualPoints(
+  participantId: string,
+): Promise<YcParticipantIndividualPoints> {
+  const [uploadAgg, extrovertAgg] = await Promise.all([
+    prisma.ycChallengeSubmission.aggregate({
+      where: {
+        participantId,
+        groupId: null,
+        status: 'APPROVED',
+        challenge: { slug: YC_TUKANG_NGONTEN_SLUG },
+      },
+      _sum: { pointsAwarded: true },
+    }),
+    prisma.ycNametagStory.aggregate({
+      where: {
+        authorParticipantId: participantId,
+        pairing: { status: 'COMPLETED', challenge: { slug: YC_SIPALING_EXTROVERT_SLUG } },
+      },
+      _sum: { pointsAwarded: true },
+    }),
+  ])
+
+  const upload = uploadAgg._sum.pointsAwarded ?? 0
+  const extrovert = extrovertAgg._sum.pointsAwarded ?? 0
+  return { upload, extrovert, total: upload + extrovert }
 }

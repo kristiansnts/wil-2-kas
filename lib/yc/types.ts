@@ -13,6 +13,12 @@ export type YcParticipantFeatureFlags = {
   worshipForm: boolean
 }
 
+export type YcParticipantIndividualPoints = {
+  upload: number
+  extrovert: number
+  total: number
+}
+
 export type YcParticipantPublic = {
   id: string
   token: string
@@ -100,6 +106,31 @@ export type YcLeaderboardEntry = {
   name: string
   points: number
   memberCount: number
+}
+
+export type YcAdminParticipantRank = {
+  rank: number
+  id: string
+  name: string
+  groupName: string | null
+  points: number
+  count?: number
+}
+
+export type YcAdminGroupRank = {
+  rank: number
+  id: string
+  slug: string
+  name: string
+  points: number
+  detail?: string
+}
+
+export type YcAdminRankings = {
+  tukangNgonten: YcAdminParticipantRank[]
+  extrovert: YcAdminParticipantRank[]
+  outbound: YcAdminGroupRank[]
+  teamActivity: YcAdminGroupRank[]
 }
 
 export type NametagPairingView = {

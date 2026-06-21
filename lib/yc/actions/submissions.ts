@@ -23,6 +23,7 @@ export async function approveSubmission(submissionId: string) {
   if (sub.groupId) await addGroupPoints(sub.groupId, points)
 
   revalidatePath('/yc/admin/submissions')
+  revalidatePath('/yc/admin')
   return { ok: true }
 }
 
@@ -35,5 +36,6 @@ export async function rejectSubmission(submissionId: string) {
   })
 
   revalidatePath('/yc/admin/submissions')
+  revalidatePath('/yc/admin')
   return { ok: true }
 }

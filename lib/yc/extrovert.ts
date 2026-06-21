@@ -334,13 +334,6 @@ async function completeNametagPairing(
         data: { pointsAwarded: points, submissionId: submission.id },
       })
 
-      if (author.groupId) {
-        await tx.ycGroup.update({
-          where: { id: author.groupId },
-          data: { points: { increment: points } },
-        })
-      }
-
       awards.push({ participantId: author.id, points })
     }
 

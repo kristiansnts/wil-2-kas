@@ -9,6 +9,7 @@ export async function approveGallerySubmission(uploadId: string) {
   const res = await approveGalleryUpload(uploadId)
   if ('error' in res) return res
   revalidatePath('/yc/admin/submissions')
+  revalidatePath('/yc/admin')
   return res
 }
 
@@ -17,5 +18,6 @@ export async function rejectGallerySubmission(uploadId: string, reviewComment: s
   const res = await rejectGalleryUpload(uploadId, reviewComment)
   if ('error' in res) return res
   revalidatePath('/yc/admin/submissions')
+  revalidatePath('/yc/admin')
   return res
 }

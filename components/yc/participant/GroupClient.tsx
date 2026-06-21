@@ -81,18 +81,14 @@ export default function GroupClient({
         <GroupIcon name={group.name} slug={group.slug} size={200} />
       </div>
 
-      <div className="stats-row">
-        <div className="stat-pill">
-          <div className="stat-pill-label">Poin</div>
-          <div className="stat-pill-val">{group.points}</div>
-        </div>
-        {rolesReady && (
+      {rolesReady && (
+        <div className="stats-row">
           <div className="stat-pill">
             <div className="stat-pill-label">Anggota</div>
             <div className="stat-pill-val">{group.members.length}</div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="card" style={{ marginBottom: 12 }}>
         <div className="txn-row">

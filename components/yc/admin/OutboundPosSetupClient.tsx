@@ -7,6 +7,7 @@ import { OUTBOUND_POSITION_COUNT, outboundScheduleForPosition } from '@/lib/yc/o
 import { setOutboundPosition } from '@/lib/yc/actions/outbound'
 import { ycLogout } from '@/lib/yc/actions/auth'
 import { AlertModal } from '@/components/ui/AlertModal'
+import OutboundScheduleTable from '@/components/yc/admin/OutboundScheduleTable'
 
 export default function OutboundPosSetupClient() {
   const router = useRouter()
@@ -110,6 +111,11 @@ export default function OutboundPosSetupClient() {
             {loading ? 'Memproses…' : 'Masuk Dashboard'}
           </button>
         </form>
+
+        <div className="section-header yc-outbound-section">
+          <div className="section-title">Jadwal Final</div>
+        </div>
+        <OutboundScheduleTable highlightPosition={selected ?? undefined} />
       </div>
 
       {alert && <AlertModal message={alert} onClose={() => setAlert(null)} />}

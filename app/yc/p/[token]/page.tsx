@@ -2,7 +2,11 @@ import { notFound } from 'next/navigation'
 import DashboardClient from '@/components/yc/participant/DashboardClient'
 import { redirectComiteeToAdmin } from '@/lib/yc/committee'
 import { getParticipantFeatureFlags } from '@/lib/yc/features'
-import { getParticipantByToken, toParticipantPublic } from '@/lib/yc/participant'
+import {
+  getParticipantByToken,
+  getParticipantIndividualPoints,
+  toParticipantPublic,
+} from '@/lib/yc/participant'
 type Props = { params: Promise<{ token: string }> }
 
 export default async function ParticipantDashboardPage({ params }: Props) {
@@ -20,5 +24,13 @@ export default async function ParticipantDashboardPage({ params }: Props) {
     redirect(`/yc/p/${token}/register`)
   }
 
-  return <DashboardClient participant={toParticipantPublic(participant)} features={flags} />
+  const individualPoints = await getParticipantIndividualPoints(participant.id)
+
+  return (
+    <DashboardClient
+      participant={toParticipantPublic(participant)}
+      individualPoints={individualPoints}
+      features={flags}
+    />
+  )
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { FormShell } from '@/components/forms/FormShell'
 import { GroupIcon } from '@/components/yc/GroupIcon'
 import { AlertModal } from '@/components/ui/AlertModal'
-import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS } from '@/lib/yc/constants'
+import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS, YC_OUTBOUND_WIN_POINTS } from '@/lib/yc/constants'
 import type { OutboundMatchDetail } from '@/lib/yc/actions/outbound'
 import { saveOutboundGuesses, setOutboundWinner } from '@/lib/yc/actions/outbound'
 
@@ -73,6 +73,7 @@ export default function OutboundMatchClient({ match }: { match: OutboundMatchDet
   const [teamBPointsAwarded, setTeamBPointsAwarded] = useState(match.teamBGuessPointsAwarded)
   const [winnerGroupId, setWinnerGroupId] = useState(match.winnerGroupId)
   const [winnerName, setWinnerName] = useState(match.winnerName)
+  const [winnerPointsAwarded, setWinnerPointsAwarded] = useState(match.winnerPointsAwarded)
   const [loading, setLoading] = useState<'save' | 'winner-a' | 'winner-b' | null>(null)
   const [alert, setAlert] = useState<string | null>(null)
 
@@ -112,6 +113,7 @@ export default function OutboundMatchClient({ match }: { match: OutboundMatchDet
       }
       setWinnerGroupId(groupId)
       setWinnerName(name)
+      setWinnerPointsAwarded(true)
       router.refresh()
     } catch {
       setAlert('Gagal menetapkan pemenang')
@@ -146,13 +148,27 @@ export default function OutboundMatchClient({ match }: { match: OutboundMatchDet
       </div>
 
       <div className="section-header yc-outbound-section" style={{ marginTop: 0 }}>
-        <div className="section-title">Tebakan Lawan</div>
+        <div className="section-title">Tebakan Lawan Berikutnya</div>
       </div>
+      <p className="yc-outbound-helper">
+        Catat tebakan setelah ronde ini selesai. Benar = lawan di ronde berikutnya (+{YC_OUTBOUND_GUESS_POINTS}{' '}
+        poin).
+      </p>
       <div className="card yc-outbound-form-card">
         <div className="yc-outbound-guess-block">
+          {match.teamAClue && match.teamANextOpponent != null && (
+            <div className="yc-outbound-clue">
+              <div className="yc-outbound-clue-label">{match.teamAName} — petunjuk</div>
+              <div className="yc-outbound-clue-text">{match.teamAClue.clue}</div>
+              <div className="yc-outbound-clue-meta">
+                Jawaban petunjuk: {match.teamAClue.answer} · Lawan berikutnya: Kelompok{' '}
+                {match.teamANextOpponent}
+              </div>
+            </div>
+          )}
           <GuessSelect
             id="team-a-guess"
-            label={`${match.teamAName} — tebak lawan`}
+            label={`${match.teamAName} — tebak lawan berikutnya`}
             value={teamAGuess}
             onChange={setTeamAGuess}
             disabled={loading != null}
@@ -161,9 +177,19 @@ export default function OutboundMatchClient({ match }: { match: OutboundMatchDet
         </div>
 
         <div className="yc-outbound-guess-block">
+          {match.teamBClue && match.teamBNextOpponent != null && (
+            <div className="yc-outbound-clue">
+              <div className="yc-outbound-clue-label">{match.teamBName} — petunjuk</div>
+              <div className="yc-outbound-clue-text">{match.teamBClue.clue}</div>
+              <div className="yc-outbound-clue-meta">
+                Jawaban petunjuk: {match.teamBClue.answer} · Lawan berikutnya: Kelompok{' '}
+                {match.teamBNextOpponent}
+              </div>
+            </div>
+          )}
           <GuessSelect
             id="team-b-guess"
-            label={`${match.teamBName} — tebak lawan`}
+            label={`${match.teamBName} — tebak lawan berikutnya`}
             value={teamBGuess}
             onChange={setTeamBGuess}
             disabled={loading != null}
@@ -184,12 +210,18 @@ export default function OutboundMatchClient({ match }: { match: OutboundMatchDet
       <div className="section-header yc-outbound-section">
         <div className="section-title">Pemenang Outbound</div>
       </div>
+      <p className="yc-outbound-helper">
+        Pilih tim pemenang game di pos ini (+{YC_OUTBOUND_WIN_POINTS} poin).
+      </p>
       <div className="card yc-outbound-form-card">
         {winnerGroupId && winnerName ? (
-          <div className="yc-outbound-result yc-outbound-result--ok">Pemenang: {winnerName}</div>
-        ) : (
-          <p className="yc-outbound-helper">Pilih tim pemenang di pos ini (tanpa poin tambahan).</p>
-        )}
+          <div className="yc-outbound-result yc-outbound-result--ok">
+            Pemenang: {winnerName}{' '}
+            {winnerPointsAwarded
+              ? `(+${YC_OUTBOUND_WIN_POINTS} poin)`
+              : '(poin akan diberikan saat dikonfirmasi)'}
+          </div>
+        ) : null}
         <div className="yc-outbound-winner-btns">
           <button
             type="button"

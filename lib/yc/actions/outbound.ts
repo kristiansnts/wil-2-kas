@@ -2,13 +2,18 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS, YC_OUTBOUND_SLUG } from '@/lib/yc/constants'
+import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS, YC_OUTBOUND_SLUG, YC_OUTBOUND_WIN_POINTS } from '@/lib/yc/constants'
 import {
+  applyOutboundWinnerPoints,
+  getNextOpponentNum,
   groupNameFromNum,
+  isNextOpponentGuessCorrect,
+  outboundGuessClueForTeam,
   outboundMatchLabel,
   outboundMatchStatus,
   scoreOutboundGuesses,
   teamSlugFromNum,
+  type OutboundGuessClue,
 } from '@/lib/yc/outbound'
 import { requireYcAdmin } from '@/lib/yc/session'
 import {
@@ -21,6 +26,7 @@ import { isValidOutboundPosition } from '@/lib/yc/outbound-data'
 function revalidateOutboundPaths() {
   revalidatePath('/yc/admin/outbound')
   revalidatePath('/yc/admin/leaderboard')
+  revalidatePath('/yc/admin')
 }
 
 async function requireOutboundPositionAccess(matchPosition: number): Promise<number | null> {
@@ -64,6 +70,7 @@ export type OutboundMatchListItem = {
   teamAGuessPointsAwarded: boolean
   teamBGuessPointsAwarded: boolean
   winnerGroupId: string | null
+  winnerPointsAwarded: boolean
   label: string
   status: ReturnType<typeof outboundMatchStatus>
   teamASlug: string
@@ -78,6 +85,10 @@ export type OutboundMatchDetail = OutboundMatchListItem & {
   winnerName: string | null
   teamACorrect: boolean | null
   teamBCorrect: boolean | null
+  teamAClue: OutboundGuessClue | null
+  teamBClue: OutboundGuessClue | null
+  teamANextOpponent: number | null
+  teamBNextOpponent: number | null
 }
 
 async function getOutboundChallengeId(): Promise<string | null> {
@@ -100,6 +111,7 @@ function serializeMatch(
     teamAGuessPointsAwarded: boolean
     teamBGuessPointsAwarded: boolean
     winnerGroupId: string | null
+    winnerPointsAwarded: boolean
   },
   groupsByNum: Map<number, { id: string; name: string; slug: string }>,
 ): OutboundMatchListItem {
@@ -114,6 +126,7 @@ function serializeMatch(
     teamAGuessPointsAwarded: match.teamAGuessPointsAwarded,
     teamBGuessPointsAwarded: match.teamBGuessPointsAwarded,
     winnerGroupId: match.winnerGroupId,
+    winnerPointsAwarded: match.winnerPointsAwarded,
     label: outboundMatchLabel(match),
     status: outboundMatchStatus(match),
     teamASlug: groupsByNum.get(match.teamANum)?.slug ?? teamSlugFromNum(match.teamANum),
@@ -175,9 +188,17 @@ export async function getOutboundMatch(matchId: string): Promise<OutboundMatchDe
     teamBId: teamB?.id ?? '',
     winnerName: match.winnerGroup?.name ?? null,
     teamACorrect:
-      match.teamAGuessNum != null ? match.teamAGuessNum === match.teamBNum : null,
+      match.teamAGuessNum != null
+        ? isNextOpponentGuessCorrect(match.teamAGuessNum, match.teamANum, match.round)
+        : null,
     teamBCorrect:
-      match.teamBGuessNum != null ? match.teamBGuessNum === match.teamANum : null,
+      match.teamBGuessNum != null
+        ? isNextOpponentGuessCorrect(match.teamBGuessNum, match.teamBNum, match.round)
+        : null,
+    teamAClue: outboundGuessClueForTeam(match.teamANum, match.round),
+    teamBClue: outboundGuessClueForTeam(match.teamBNum, match.round),
+    teamANextOpponent: getNextOpponentNum(match.teamANum, match.round),
+    teamBNextOpponent: getNextOpponentNum(match.teamBNum, match.round),
   }
 }
 
@@ -242,12 +263,13 @@ export async function setOutboundWinner(matchId: string, winnerGroupId: string) 
     return { error: 'Pemenang harus salah satu tim di pertandingan ini' }
   }
 
-  await prisma.ycOutboundMatch.update({
-    where: { id: matchId },
-    data: { winnerGroupId },
-  })
+  const scoring = await applyOutboundWinnerPoints(match, winnerGroupId)
 
   revalidateOutboundPaths()
   revalidatePath(`/yc/admin/outbound/${matchId}`)
-  return { ok: true }
+  return {
+    ok: true,
+    winPointsAwarded: scoring.pointsAwarded,
+    winPoints: YC_OUTBOUND_WIN_POINTS,
+  }
 }

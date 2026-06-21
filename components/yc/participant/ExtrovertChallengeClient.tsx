@@ -9,7 +9,6 @@ import {
   YC_NAMETAG_MIN_CHARS,
   YC_SIPALING_EXTROVERT_SLUG,
 } from '@/lib/yc/constants'
-import { pointsFromCharCount } from '@/lib/yc/nametag-scoring'
 import type { NametagPairingView } from '@/lib/yc/types'
 
 type Challenge = {
@@ -33,15 +32,7 @@ const RULES = [
   'Scan QR di name tag mereka.',
   'Ngobrol bebas minimal 5 menit.',
   'Setelah selesai, kedua peserta mengisi cerita singkat tentang lawan bicara.',
-  'Satu pasangan hanya bisa mendapat poin 1 kali selama event.',
-]
-
-const POINT_TIERS = [
-  { range: '50–99', points: 50 },
-  { range: '100–149', points: 75 },
-  { range: '150–199', points: 100 },
-  { range: '200–249', points: 125 },
-  { range: '≥ 250', points: 150 },
+  'Satu pasangan hanya bisa diselesaikan 1 kali selama event.',
 ]
 
 export default function ExtrovertChallengeClient({
@@ -63,7 +54,6 @@ export default function ExtrovertChallengeClient({
 
   const pairing = status.openPairing
   const charCount = storyText.trim().length
-  const previewPoints = pointsFromCharCount(charCount)
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -132,7 +122,7 @@ export default function ExtrovertChallengeClient({
       if (data.waitingForPartner) {
         setAlert('Cerita terkirim! Menunggu pasanganmu juga mengisi cerita.')
       } else if (data.pointsAwarded != null) {
-        setAlert(`Selesai! Kamu mendapat +${data.pointsAwarded} poin.`)
+        setAlert('Cerita selesai! Terima kasih sudah berbagi.')
         router.refresh()
       }
     } catch {
@@ -154,24 +144,8 @@ export default function ExtrovertChallengeClient({
       </div>
 
       <div className="stat-pill">
-        <div className="stat-pill-label">Total Poin Kamu</div>
-        <div className="stat-pill-val green">{status.totalPointsEarned}</div>
-      </div>
-      <div className="stat-pill">
         <div className="stat-pill-label">Pasangan Selesai</div>
         <div className="stat-pill-val">{status.pairingCount}</div>
-      </div>
-
-      <div className="card" style={{ padding: 16, fontSize: 13, lineHeight: 1.45 }}>
-        <div style={{ fontWeight: 600, marginBottom: 8 }}>Mekanisme Poin (per cerita)</div>
-        <div style={{ display: 'grid', gap: 4 }}>
-          {POINT_TIERS.map(tier => (
-            <div key={tier.range} style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span>{tier.range} karakter</span>
-              <span style={{ fontWeight: 600 }}>+{tier.points} poin</span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {!pairing && !showScanner && (

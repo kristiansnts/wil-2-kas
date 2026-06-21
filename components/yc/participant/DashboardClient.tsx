@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { YC_BRAND } from '@/lib/yc/constants'
-import type { YcParticipantFeatureFlags, YcParticipantPublic } from '@/lib/yc/types'
+import type { YcParticipantFeatureFlags, YcParticipantIndividualPoints, YcParticipantPublic } from '@/lib/yc/types'
 import EmergencySoundToggle from '@/components/yc/participant/EmergencySoundToggle'
 
 const MENUS = [
@@ -16,13 +16,22 @@ const MENUS = [
 
 export default function DashboardClient({
   participant,
+  individualPoints,
   features,
 }: {
   participant: YcParticipantPublic
+  individualPoints: YcParticipantIndividualPoints
   features: YcParticipantFeatureFlags
 }) {
   const base = `/yc/p/${participant.token}`
   const menus = MENUS.filter(m => !('feature' in m) || features[m.feature])
+
+  const breakdown = [
+    individualPoints.upload > 0 && `Upload ${individualPoints.upload}`,
+    individualPoints.extrovert > 0 && `Extrovert ${individualPoints.extrovert}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <div className="screen">
@@ -39,7 +48,15 @@ export default function DashboardClient({
           <div className="balance-date">{participant.church}</div>
           {participant.group && (
             <div className="balance-date" style={{ marginTop: 8 }}>
-              {participant.group.name} · {participant.group.points} poin
+              {participant.group.name}
+            </div>
+          )}
+          <div className="balance-date" style={{ marginTop: 12, fontWeight: 600 }}>
+            Poin individu: {individualPoints.total}
+          </div>
+          {breakdown && (
+            <div className="balance-date" style={{ marginTop: 4, fontSize: 13 }}>
+              {breakdown}
             </div>
           )}
         </div>

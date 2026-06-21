@@ -106,7 +106,7 @@ async function main() {
       slug: 'si-paling-extrovert',
       type: 'INDIVIDUAL',
       description:
-        'Cerita di Balik Name Tag — scan name tag teman, ngobrol minimal 5 menit, lalu tulis cerita singkat. Poin 50–150 berdasarkan panjang cerita.',
+        'Cerita di Balik Name Tag — scan name tag teman, ngobrol minimal 5 menit, lalu tulis cerita singkat. Poin individu 50–150 (panjang cerita), tidak mempengaruhi skor kelompok.',
       points: 150,
       isActive: true,
     },
@@ -134,7 +134,7 @@ async function main() {
       title: 'Outbound Challenge',
       slug: YC_OUTBOUND_SLUG,
       type: 'TEAM',
-      description: 'Tebak tim lawan di setiap pos. Tebakan benar = 10 poin per tim.',
+      description: 'Tebak tim lawan di setiap pos. Tebakan benar = 10 poin. Menang game = 20 poin.',
       points: 10,
       isActive: true,
     },

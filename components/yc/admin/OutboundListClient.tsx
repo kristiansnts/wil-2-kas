@@ -8,6 +8,7 @@ import { groupNameFromNum, outboundScheduleForPosition } from '@/lib/yc/outbound
 import type { OutboundMatchListItem } from '@/lib/yc/actions/outbound'
 import { clearOutboundPosition } from '@/lib/yc/actions/outbound'
 import { ycLogout } from '@/lib/yc/actions/auth'
+import OutboundScheduleTable from '@/components/yc/admin/OutboundScheduleTable'
 
 function statusLabel(status: OutboundMatchListItem['status']) {
   if (status === 'done') return 'Selesai'
@@ -55,6 +56,11 @@ export default function OutboundListClient({
 
       <div className="content">
         <div className="section-header yc-outbound-section" style={{ marginTop: 0 }}>
+          <div className="section-title">Jadwal Final</div>
+        </div>
+        <OutboundScheduleTable highlightPosition={position} />
+
+        <div className="section-header yc-outbound-section">
           <div className="section-title">Jadwal Pos {position}</div>
         </div>
         <div className="card yc-admin-table-wrap">

@@ -1,16 +1,22 @@
 import { prisma } from '@/lib/prisma'
-import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS } from '@/lib/yc/constants'
-import { isGuessCorrect, teamSlugFromNum } from '@/lib/yc/outbound-data'
-import { addGroupPoints } from '@/lib/yc/points'
+import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS, YC_OUTBOUND_WIN_POINTS } from '@/lib/yc/constants'
+import { isNextOpponentGuessCorrect, teamSlugFromNum } from '@/lib/yc/outbound-data'
+import { addGroupPoints, adjustGroupPoints } from '@/lib/yc/points'
 
 export {
+  OUTBOUND_GUESS_CLUES,
   OUTBOUND_SCHEDULE,
   buildOutboundMatchSeed,
+  getNextOpponentNum,
   groupNameFromNum,
   isGuessCorrect,
+  isNextOpponentGuessCorrect,
+  outboundFullScheduleTable,
+  outboundGuessClueForTeam,
   outboundMatchLabel,
   outboundMatchStatus,
   teamSlugFromNum,
+  type OutboundGuessClue,
   type OutboundMatchStatus,
 } from '@/lib/yc/outbound-data'
 
@@ -26,6 +32,7 @@ type OutboundMatchRow = {
   teamAGuessPointsAwarded: boolean
   teamBGuessPointsAwarded: boolean
   winnerGroupId: string | null
+  winnerPointsAwarded: boolean
 }
 
 export async function resolveGroupIdByNum(num: number): Promise<string | null> {
@@ -54,7 +61,7 @@ export async function scoreOutboundGuesses(match: OutboundMatchRow): Promise<{
   } = {}
 
   if (match.teamAGuessNum != null) {
-    teamACorrect = isGuessCorrect(match.teamAGuessNum, match.teamBNum)
+    teamACorrect = isNextOpponentGuessCorrect(match.teamAGuessNum, match.teamANum, match.round)
     if (teamACorrect && !match.teamAGuessPointsAwarded) {
       const groupId = await resolveGroupIdByNum(match.teamANum)
       if (groupId) {
@@ -66,7 +73,7 @@ export async function scoreOutboundGuesses(match: OutboundMatchRow): Promise<{
   }
 
   if (match.teamBGuessNum != null) {
-    teamBCorrect = isGuessCorrect(match.teamBGuessNum, match.teamANum)
+    teamBCorrect = isNextOpponentGuessCorrect(match.teamBGuessNum, match.teamBNum, match.round)
     if (teamBCorrect && !match.teamBGuessPointsAwarded) {
       const groupId = await resolveGroupIdByNum(match.teamBNum)
       if (groupId) {
@@ -85,4 +92,43 @@ export async function scoreOutboundGuesses(match: OutboundMatchRow): Promise<{
   }
 
   return { teamACorrect, teamBCorrect, teamAPointsAwarded, teamBPointsAwarded }
+}
+
+type OutboundMatchWinnerRow = {
+  id: string
+  winnerGroupId: string | null
+  winnerPointsAwarded: boolean
+}
+
+/** Award win points when panitia sets match winner; reverses prior winner if changed. */
+export async function applyOutboundWinnerPoints(
+  match: OutboundMatchWinnerRow,
+  newWinnerGroupId: string,
+): Promise<{ pointsAwarded: number }> {
+  const prevId = match.winnerGroupId
+  const prevAwarded = match.winnerPointsAwarded
+
+  if (prevId === newWinnerGroupId && prevAwarded) {
+    return { pointsAwarded: 0 }
+  }
+
+  if (prevId && prevAwarded && prevId !== newWinnerGroupId) {
+    await adjustGroupPoints(prevId, -YC_OUTBOUND_WIN_POINTS)
+  }
+
+  let pointsAwarded = 0
+  if (!(prevId === newWinnerGroupId && prevAwarded)) {
+    await addGroupPoints(newWinnerGroupId, YC_OUTBOUND_WIN_POINTS)
+    pointsAwarded = YC_OUTBOUND_WIN_POINTS
+  }
+
+  await prisma.ycOutboundMatch.update({
+    where: { id: match.id },
+    data: {
+      winnerGroupId: newWinnerGroupId,
+      winnerPointsAwarded: true,
+    },
+  })
+
+  return { pointsAwarded }
 }
