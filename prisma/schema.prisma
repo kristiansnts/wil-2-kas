@@ -167,6 +167,7 @@ model YcGroup {
   submissions                 YcChallengeSubmission[]
   teamSessions                YcTeamChallengeSession[]
   galleryUploads              YcGalleryUpload[]
+  outboundWins                YcOutboundMatch[] @relation("YcOutboundWinner")
   createdAt                   DateTime @default(now())
   updatedAt                   DateTime @updatedAt
 }
@@ -212,8 +213,29 @@ model YcChallenge {
   quizQuestions   YcQuizQuestion[]
   teamSessions    YcTeamChallengeSession[]
   nametagPairings YcNametagPairing[]
+  outboundMatches YcOutboundMatch[]
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+}
+
+model YcOutboundMatch {
+  id                      String   @id @default(cuid())
+  challengeId             String
+  round                   Int
+  position                Int
+  teamANum                Int
+  teamBNum                Int
+  teamAGuessNum           Int?
+  teamBGuessNum           Int?
+  teamAGuessPointsAwarded Boolean  @default(false)
+  teamBGuessPointsAwarded Boolean  @default(false)
+  winnerGroupId           String?
+  challenge               YcChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  winnerGroup             YcGroup?    @relation("YcOutboundWinner", fields: [winnerGroupId], references: [id], onDelete: SetNull)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@unique([challengeId, round, position])
 }
 
 model YcNametagPairing {

@@ -552,3 +552,59 @@ a { color: inherit; text-decoration: none; }
 .yc-worship-form-fields { display: flex; flex-direction: column; gap: 16px; }
 .yc-worship-submitted-note { margin: 0; font-size: 14px; color: #15803d; font-weight: 500; }
 .yc-worship-textarea { min-height: 160px; resize: vertical; line-height: 1.5; }
+
+/* Outbound challenge admin */
+.yc-outbound-section { margin-bottom: 10px; }
+.yc-outbound-lead {
+  margin: 0 0 16px; font-size: 13px; line-height: 1.5; color: var(--muted);
+}
+.yc-outbound-form-card {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.yc-outbound-form-card .form-group { gap: 8px; }
+.yc-outbound-form-card .form-group label { font-size: 13px; font-weight: 500; color: #57534e; }
+.yc-outbound-preview-title {
+  margin: 4px 0 0; font-size: 14px; font-weight: 600; color: #1c1917;
+}
+.yc-outbound-matchup-card { padding: 4px 0; margin-bottom: 16px; }
+.yc-outbound-vs {
+  text-align: center; color: var(--muted); font-size: 13px; font-weight: 600;
+  padding: 4px 0 8px;
+}
+.yc-outbound-guess-block {
+  display: flex; flex-direction: column; gap: 8px;
+  padding-bottom: 16px; border-bottom: 1px solid var(--border);
+}
+.yc-outbound-guess-block:last-of-type { padding-bottom: 0; border-bottom: none; }
+.yc-outbound-form-actions { margin-top: 4px; }
+.yc-outbound-helper {
+  margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted);
+}
+.yc-outbound-winner-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.yc-outbound-winner-btns .submit-btn { flex: 1; min-width: 140px; }
+.yc-outbound-btn-muted {
+  background: var(--accent-light); color: var(--accent);
+}
+.yc-outbound-btn-muted:hover { opacity: 0.92; }
+.yc-outbound-nav-btn {
+  font-size: 13px; background: none; border: none; cursor: pointer; font-family: inherit;
+}
+.yc-outbound-nav-btn--muted { color: var(--muted); margin-right: 12px; }
+.yc-outbound-nav-btn--accent { color: var(--accent); }
+.yc-outbound-row { text-decoration: none; color: inherit; cursor: pointer; }
+.yc-outbound-row:hover { background: rgba(0, 0, 0, 0.02); }
+.yc-outbound-badge {
+  font-size: 11px; font-weight: 700; padding: 4px 8px; border-radius: 999px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.yc-outbound-badge--pending { background: var(--border); color: var(--muted); }
+.yc-outbound-badge--guessed { background: var(--accent-light); color: var(--accent); }
+.yc-outbound-badge--done { background: #dcfce7; color: #15803d; }
+.yc-outbound-result {
+  font-size: 13px; font-weight: 600; padding: 10px 12px; border-radius: 10px;
+}
+.yc-outbound-result--ok { background: #dcfce7; color: #15803d; }
+.yc-outbound-result--fail { background: var(--red-light); color: var(--red); }

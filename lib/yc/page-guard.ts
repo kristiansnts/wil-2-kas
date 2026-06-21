@@ -6,7 +6,7 @@ export async function requireParticipantPage(token: string, options?: { allowUnr
   const participant = await getParticipantByToken(token)
   if (!participant) redirect('/yc')
 
-  await redirectComiteeToAdmin(participant)
+  redirectComiteeToAdmin(participant, token)
 
   if (!options?.allowUnregistered && (!participant.name || !participant.gender)) {
     redirect(`/yc/p/${token}/register`)

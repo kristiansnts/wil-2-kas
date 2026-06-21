@@ -7,15 +7,16 @@ import { nanoid } from 'nanoid'
 import QRCode from 'qrcode'
 import sharp from 'sharp'
 import { getDatabaseUrl } from '../lib/database-url'
-import { YC_DEFAULT_PDFS, YC_GROUP_SEED } from '../lib/yc/constants'
+import { YC_DEFAULT_PDFS, YC_GROUP_SEED, YC_OUTBOUND_SLUG } from '../lib/yc/constants'
+import { buildOutboundMatchSeed } from '../lib/yc/outbound-data'
 import { buildParticipantUrl, normalizeQrBaseUrl, resolveQrBaseUrl } from '../lib/yc/participant-url'
 import { TREASURE_HUNT_QUIZ_SEED, treasureHuntFragmentCode } from '../lib/yc/treasure-hunt'
 
 const adapter = new PrismaPg({ connectionString: getDatabaseUrl() })
 const prisma = new PrismaClient({ adapter })
 
-const COMITEE_COUNT = 30
-const PARTICIPANT_COUNT = 120
+const COMITEE_COUNT = 10
+const PARTICIPANT_COUNT = 100
 const QR_DIR = path.join(process.cwd(), 'public', 'qr')
 const TREASURE_HUNT_QR_DIR = path.join(process.cwd(), 'public', 'treasure-hunt')
 
@@ -58,6 +59,7 @@ async function main() {
   await prisma.ycQuizVote.deleteMany()
   await prisma.ycTeamReadyCheck.deleteMany()
   await prisma.ycTeamChallengeSession.deleteMany()
+  await prisma.ycOutboundMatch.deleteMany()
   await prisma.ycChallengeSubmission.deleteMany()
   await prisma.ycGalleryUpload.deleteMany()
   await prisma.ycQuizQuestion.deleteMany()
@@ -125,6 +127,21 @@ async function main() {
         })),
       },
     },
+  })
+
+  const outboundChallenge = await prisma.ycChallenge.create({
+    data: {
+      title: 'Outbound Challenge',
+      slug: YC_OUTBOUND_SLUG,
+      type: 'TEAM',
+      description: 'Tebak tim lawan di setiap pos. Tebakan benar = 10 poin per tim.',
+      points: 10,
+      isActive: true,
+    },
+  })
+
+  await prisma.ycOutboundMatch.createMany({
+    data: buildOutboundMatchSeed(outboundChallenge.id),
   })
 
   await rm(TREASURE_HUNT_QR_DIR, { recursive: true, force: true })
@@ -213,6 +230,7 @@ async function main() {
   console.log('Sample panitia token:', comiteeTokens[0])
   console.log('Sample peserta token:', participantTokens[0])
   console.log('Team challenge slug:', teamChallenge.slug)
+  console.log('Outbound challenge slug:', outboundChallenge.slug, '(25 matches)')
   console.log(`Treasure-hunt QR: public/treasure-hunt/fragment-01.webp … fragment-08.webp`)
   console.log('Treasure-hunt manifest: public/treasure-hunt/manifest.json')
 }

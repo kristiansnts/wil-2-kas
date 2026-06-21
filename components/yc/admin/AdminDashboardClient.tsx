@@ -13,6 +13,7 @@ export default function AdminDashboardClient({
   leaderboard: { rank: number; name: string; slug: string; points: number }[]
 }) {
   const links = [
+    { href: '/yc/admin/outbound', label: 'Outbound', icon: '🎯' },
     { href: '/yc/admin/submissions', label: 'Submissions', icon: '📝' },
     { href: '/yc/admin/emergency', label: 'Emergency', icon: '🚨' },
     { href: '/yc/admin/leaderboard', label: 'Leaderboard', icon: '🏆' },

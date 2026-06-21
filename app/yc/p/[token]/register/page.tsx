@@ -12,7 +12,7 @@ export default async function RegisterPage({ params }: Props) {
   const participant = await getParticipantByToken(token)
   if (!participant) notFound()
 
-  await redirectComiteeToAdmin(participant)
+  redirectComiteeToAdmin(participant, token)
 
   const churches = await listChurchOptions()
   const interests = Array.isArray(participant.serviceInterest)

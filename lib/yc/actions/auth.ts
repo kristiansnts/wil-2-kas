@@ -1,6 +1,7 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { clearOutboundPositionCookie } from '@/lib/yc/outbound-session'
 import { setYcSession, clearYcSession, verifyYcAdminPassword } from '@/lib/yc/session'
 
 export async function ycLogin(
@@ -16,6 +17,7 @@ export async function ycLogin(
 }
 
 export async function ycLogout(): Promise<void> {
+  await clearOutboundPositionCookie()
   await clearYcSession()
   redirect('/yc/admin/login')
 }

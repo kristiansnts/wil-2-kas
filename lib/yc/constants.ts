@@ -61,6 +61,10 @@ export const YC_NAMETAG_MIN_CHARS = 50
 
 export const YC_TEAM_CHALLENGE_SLUG = 'treasure-hunt'
 
+export const YC_OUTBOUND_SLUG = 'outbound-challenge'
+
+export const YC_OUTBOUND_GUESS_POINTS = 10
+
 export const YC_QUIZ_ANSWER_SECONDS = 10
 export const YC_QUIZ_RETRY_SECONDS = 30
 

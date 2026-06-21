@@ -13,7 +13,7 @@ export default async function ParticipantDashboardPage({ params }: Props) {
   ])
   if (!participant) notFound()
 
-  await redirectComiteeToAdmin(participant)
+  await redirectComiteeToAdmin(participant, token)
 
   if (!participant.name || !participant.gender) {
     const { redirect } = await import('next/navigation')
