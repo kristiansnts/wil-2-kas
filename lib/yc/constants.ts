@@ -14,6 +14,7 @@ export const SERVICE_OPTIONS = [
   { value: 'GITAR', label: 'Gitar' },
   { value: 'SINGER', label: 'Singer' },
   { value: 'BASS', label: 'Bass' },
+  { value: 'DRUM', label: 'Drum' },
   { value: 'MULTIMEDIA', label: 'Multimedia' },
   { value: 'LAINNYA', label: 'Lainnya' },
 ] as const
