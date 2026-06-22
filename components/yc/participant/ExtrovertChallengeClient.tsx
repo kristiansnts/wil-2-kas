@@ -9,6 +9,7 @@ import {
   YC_NAMETAG_MIN_CHARS,
   YC_SIPALING_EXTROVERT_SLUG,
 } from '@/lib/yc/constants'
+import { pointsFromCharCount } from '@/lib/yc/nametag-scoring'
 import type { NametagPairingView } from '@/lib/yc/types'
 
 type Challenge = {
@@ -54,6 +55,7 @@ export default function ExtrovertChallengeClient({
 
   const pairing = status.openPairing
   const charCount = storyText.trim().length
+  const previewPoints = pointsFromCharCount(charCount)
 
   const fetchStatus = useCallback(async () => {
     try {

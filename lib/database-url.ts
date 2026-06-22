@@ -32,65 +32,44 @@ function isDirectPrismaHost(url: string): boolean {
 }
 
 function toPooledPrismaHost(url: string): string {
-  if (isPooledPrismaHost(url)) return url
+  if (isPooledPrismaHost(url) || !isDirectPrismaHost(url)) return url
   return url.replace('@db.prisma.io', '@pooled.db.prisma.io')
 }
 
 function toDirectPrismaHost(url: string): string {
-  if (isDirectPrismaHost(url)) return url
+  if (isDirectPrismaHost(url) || !isPooledPrismaHost(url)) return url
   return url.replace('@pooled.db.prisma.io', '@db.prisma.io')
 }
 
-/** Pooled URL for runtime queries. Works with Vercel Storage auto-provisioned vars. */
+/** Runtime URL — prefers POSTGRES_URL from Vercel Storage. */
 export function getDatabaseUrl(): string {
-  const candidates = [
-    process.env.DATABASE_PRISMA_DATABASE_URL,
-    process.env.DATABASE_POSTGRES_URL,
-    process.env.DATABASE_URL,
-    process.env.POSTGRES_PRISMA_URL,
-    process.env.POSTGRES_URL,
-  ].filter((url): url is string => Boolean(url))
+  const url = firstEnv(
+    'POSTGRES_URL',
+    'DATABASE_POSTGRES_URL',
+    'DATABASE_PRISMA_DATABASE_URL',
+    'POSTGRES_PRISMA_URL',
+    'DATABASE_URL',
+  )
 
-  const pooled = candidates.find(isPooledPrismaHost)
-  if (pooled) return normalizePgUrl(pooled)
-
-  const direct = candidates.find(isDirectPrismaHost)
-  if (direct) return normalizePgUrl(toPooledPrismaHost(direct))
-
-  const fallback = firstEnv('DATABASE_URL')
-  if (!fallback) {
-    throw new Error(
-      'No database URL found. Connect Prisma Postgres via Vercel Storage or set DATABASE_URL.',
-    )
+  if (!url) {
+    throw new Error('POSTGRES_URL is not set')
   }
 
-  return normalizePgUrl(toPooledPrismaHost(fallback))
+  return normalizePgUrl(toPooledPrismaHost(url))
 }
 
 /** Direct URL for migrations and CLI scripts. */
 export function getDirectDatabaseUrl(): string {
-  const candidates = [
-    process.env.DIRECT_URL,
-    process.env.DATABASE_URL,
-    process.env.DATABASE_POSTGRES_URL,
-    process.env.POSTGRES_URL_NON_POOLING,
-    process.env.DATABASE_PRISMA_DATABASE_URL,
-    process.env.DATABASE_POSTGRES_URL,
-    process.env.POSTGRES_URL,
-  ].filter((url): url is string => Boolean(url))
+  const url = firstEnv(
+    'POSTGRES_URL_NON_POOLING',
+    'DIRECT_URL',
+    'POSTGRES_URL',
+    'DATABASE_URL',
+  )
 
-  const direct = candidates.find(isDirectPrismaHost)
-  if (direct) return normalizePgUrl(direct)
-
-  const pooled = candidates.find(isPooledPrismaHost)
-  if (pooled) return normalizePgUrl(toDirectPrismaHost(pooled))
-
-  const fallback = firstEnv('DIRECT_URL', 'DATABASE_URL')
-  if (!fallback) {
-    throw new Error(
-      'No direct database URL found. Connect Prisma Postgres via Vercel Storage or set DIRECT_URL.',
-    )
+  if (!url) {
+    throw new Error('POSTGRES_URL or DIRECT_URL is not set')
   }
 
-  return normalizePgUrl(toDirectPrismaHost(fallback))
+  return normalizePgUrl(toDirectPrismaHost(url))
 }
