@@ -1,9 +1,6 @@
 const LEGACY_SSL_MODES = new Set(['prefer', 'require', 'verify-ca'])
 
-/** Normalize pg sslmode to silence pg-connection-string v2 deprecation warning. */
-export function getDatabaseUrl(): string {
-  const url = process.env.DATABASE_URL
-  if (!url) throw new Error('DATABASE_URL is not set')
+function normalizePgUrl(url: string): string {
 
   try {
     const parsed = new URL(url)
@@ -17,4 +14,20 @@ export function getDatabaseUrl(): string {
   }
 
   return url
+}
+
+function readEnvUrl(name: 'DATABASE_URL' | 'DIRECT_URL'): string {
+  const url = process.env[name]
+  if (!url) throw new Error(`${name} is not set`)
+  return normalizePgUrl(url)
+}
+
+/** Pooled URL for runtime queries (Prisma Postgres: pooled.db.prisma.io). */
+export function getDatabaseUrl(): string {
+  return readEnvUrl('DATABASE_URL')
+}
+
+/** Direct URL for migrations and CLI scripts (Prisma Postgres: db.prisma.io). */
+export function getDirectDatabaseUrl(): string {
+  return readEnvUrl('DIRECT_URL')
 }

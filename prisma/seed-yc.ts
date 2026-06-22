@@ -6,13 +6,13 @@ import { PrismaPg } from '@prisma/adapter-pg'
 import { nanoid } from 'nanoid'
 import QRCode from 'qrcode'
 import sharp from 'sharp'
-import { getDatabaseUrl } from '../lib/database-url'
+import { getDirectDatabaseUrl } from '../lib/database-url'
 import { YC_DEFAULT_PDFS, YC_GROUP_SEED, YC_OUTBOUND_SLUG } from '../lib/yc/constants'
 import { buildOutboundMatchSeed } from '../lib/yc/outbound-data'
 import { buildParticipantUrl, normalizeQrBaseUrl, resolveQrBaseUrl } from '../lib/yc/participant-url'
 import { TREASURE_HUNT_QUIZ_SEED, treasureHuntFragmentCode } from '../lib/yc/treasure-hunt'
 
-const adapter = new PrismaPg({ connectionString: getDatabaseUrl() })
+const adapter = new PrismaPg({ connectionString: getDirectDatabaseUrl() })
 const prisma = new PrismaClient({ adapter })
 
 const COMITEE_COUNT = 10

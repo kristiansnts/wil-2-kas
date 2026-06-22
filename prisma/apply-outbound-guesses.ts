@@ -5,12 +5,12 @@
 import 'dotenv/config'
 import { PrismaClient } from '../app/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
-import { getDatabaseUrl } from '../lib/database-url'
+import { getDirectDatabaseUrl } from '../lib/database-url'
 import { YC_OUTBOUND_SLUG } from '../lib/yc/constants'
 import { OUTBOUND_GUESS_CLUES } from '../lib/yc/outbound-data'
 import { scoreOutboundGuesses } from '../lib/yc/outbound'
 
-const adapter = new PrismaPg({ connectionString: getDatabaseUrl() })
+const adapter = new PrismaPg({ connectionString: getDirectDatabaseUrl() })
 const prisma = new PrismaClient({ adapter })
 
 const args = process.argv.slice(2)
