@@ -12,7 +12,7 @@ function getPool() {
   if (!globalForPrisma.pgPool) {
     globalForPrisma.pgPool = new pg.Pool({
       connectionString: getDatabaseUrl(),
-      max: Number(process.env.DATABASE_POOL_MAX ?? 5),
+      max: Number(process.env.DATABASE_POOL_MAX ?? 1),
     })
   }
   return globalForPrisma.pgPool
