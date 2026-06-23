@@ -35,7 +35,9 @@ export default function ChallengeListClient({
                       ? `${c.points} poin/upload · Personal atau Kelompok`
                       : c.isExtrovertChallenge
                         ? `50–150 poin/pasangan · Scan name tag`
-                        : `${c.type === 'TEAM' ? 'Team' : 'Individual'} · ${c.points} poin`}
+                        : c.isOutboundChallenge
+                          ? `Tebakan +${c.points} poin · Main di lokasi pos`
+                          : `${c.type === 'TEAM' ? 'Team' : 'Individual'} · ${c.points} poin`}
                     {c.completed && ' · ✓ Selesai'}
                   </div>
                 </div>

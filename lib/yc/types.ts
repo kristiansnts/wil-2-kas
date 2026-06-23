@@ -52,6 +52,8 @@ export type YcChallengeListItem = {
   isDocumentationChallenge?: boolean
   /** Repeatable nametag pairing challenge */
   isExtrovertChallenge?: boolean
+  /** Outbound — main di lokasi pos, tanpa scan QR */
+  isOutboundChallenge?: boolean
   uploadCount?: number
   totalPointsEarned?: number
 }

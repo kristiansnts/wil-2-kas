@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import ChallengeListClient from '@/components/yc/participant/ChallengeListClient'
 import { getParticipantFeatureFlags } from '@/lib/yc/features'
 import { requireParticipantPage } from '@/lib/yc/page-guard'
-import { YC_SIPALING_EXTROVERT_SLUG, YC_TUKANG_NGONTEN_SLUG } from '@/lib/yc/constants'
+import { YC_OUTBOUND_SLUG, YC_SIPALING_EXTROVERT_SLUG, YC_TUKANG_NGONTEN_SLUG } from '@/lib/yc/constants'
 
 type Props = { params: Promise<{ token: string }> }
 
@@ -45,6 +45,7 @@ export default async function ChallengeListPage({ params }: Props) {
   const items = challenges.map(c => {
     const isDocChallenge = c.slug === YC_TUKANG_NGONTEN_SLUG
     const isExtrovertChallenge = c.slug === YC_SIPALING_EXTROVERT_SLUG
+    const isOutboundChallenge = c.slug === YC_OUTBOUND_SLUG
     const challengeSubs = submissions.filter(s => s.challengeId === c.id && s.status === 'APPROVED')
     const sub = submissions.find(s => s.challengeId === c.id)
     const session = teamSessions.find(s => s.challengeId === c.id)
@@ -86,6 +87,7 @@ export default async function ChallengeListPage({ params }: Props) {
           : (sub?.status ?? null),
       isDocumentationChallenge: isDocChallenge,
       isExtrovertChallenge,
+      isOutboundChallenge,
       uploadCount: isDocChallenge ? myUploads.length : undefined,
       totalPointsEarned: isDocChallenge ? totalPointsEarned : isExtrovertChallenge ? extrovertPoints : undefined,
     }

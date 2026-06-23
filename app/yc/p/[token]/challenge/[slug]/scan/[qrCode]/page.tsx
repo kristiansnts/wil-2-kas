@@ -17,6 +17,8 @@ export default async function ChallengeScanPage({ params }: Props) {
   if (!participant.groupId) notFound()
   if (isTeamChallengeSlug(slug) && !features.teamChallenge) notFound()
 
+  if (!isTeamChallengeSlug(slug)) notFound()
+
   const challenge = await prisma.ycChallenge.findUnique({ where: { slug } })
   if (!challenge || challenge.type !== 'TEAM') notFound()
 

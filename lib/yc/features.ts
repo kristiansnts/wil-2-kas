@@ -22,7 +22,9 @@ export function isTeamChallengeSlug(slug: string): boolean {
 }
 
 export async function guardTeamChallengeAccess(slug: string) {
-  if (!isTeamChallengeSlug(slug)) return null
+  if (!isTeamChallengeSlug(slug)) {
+    return jsonError('Scan fragment hanya untuk Perburuan Harta Karun', 404)
+  }
   if (!(await isEnabled(YC_SETTING_KEYS.featureTeamChallenge))) {
     return jsonError('Team challenge belum dibuka', 403)
   }

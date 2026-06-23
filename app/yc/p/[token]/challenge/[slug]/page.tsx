@@ -1,9 +1,10 @@
 import { notFound, redirect } from 'next/navigation'
 import ChallengeDetailClient from '@/components/yc/participant/ChallengeDetailClient'
 import ExtrovertChallengeClient from '@/components/yc/participant/ExtrovertChallengeClient'
+import OutboundChallengeClient from '@/components/yc/participant/OutboundChallengeClient'
 import { requireParticipantPage } from '@/lib/yc/page-guard'
 import { prisma } from '@/lib/prisma'
-import { YC_SIPALING_EXTROVERT_SLUG, YC_TUKANG_NGONTEN_SLUG } from '@/lib/yc/constants'
+import { YC_OUTBOUND_SLUG, YC_SIPALING_EXTROVERT_SLUG, YC_TUKANG_NGONTEN_SLUG } from '@/lib/yc/constants'
 import { getParticipantFeatureFlags, isTeamChallengeSlug } from '@/lib/yc/features'
 import { getFragmentProgress } from '@/lib/yc/emergency'
 import { buildNametagStatus } from '@/lib/yc/extrovert'
@@ -23,6 +24,19 @@ export default async function ChallengeDetailPage({ params }: Props) {
 
   if (slug === YC_TUKANG_NGONTEN_SLUG) {
     redirect(`/yc/p/${token}/dokumentasi`)
+  }
+
+  if (slug === YC_OUTBOUND_SLUG) {
+    return (
+      <OutboundChallengeClient
+        token={token}
+        challenge={{
+          title: challenge.title,
+          description: challenge.description,
+          points: challenge.points,
+        }}
+      />
+    )
   }
 
   if (slug === YC_SIPALING_EXTROVERT_SLUG) {
@@ -50,7 +64,7 @@ export default async function ChallengeDetailPage({ params }: Props) {
   let teamStatus: string | null = null
   let fragmentsRecovered = 0
   let fragmentsTotal = 0
-  if (challenge.type === 'TEAM' && participant.groupId) {
+  if (isTeamChallengeSlug(slug) && participant.groupId) {
     const session = await prisma.ycTeamChallengeSession.findUnique({
       where: { groupId_challengeId: { groupId: participant.groupId, challengeId: challenge.id } },
     })
