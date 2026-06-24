@@ -1,7 +1,9 @@
 import { jsonError } from '@/lib/yc/api-helpers'
-import { YC_SETTING_KEYS, YC_TEAM_CHALLENGE_SLUG } from '@/lib/yc/constants'
+import { YC_SETTING_KEYS, isTeamChallengeSlug } from '@/lib/yc/constants'
 import { getYcSetting } from '@/lib/yc/settings'
 import type { YcParticipantFeatureFlags } from '@/lib/yc/types'
+
+export { isTeamChallengeSlug }
 
 async function isEnabled(key: string): Promise<boolean> {
   const val = await getYcSetting(key)
@@ -15,10 +17,6 @@ export async function getParticipantFeatureFlags(): Promise<YcParticipantFeature
     isEnabled(YC_SETTING_KEYS.featureWorshipForm),
   ])
   return { emergencyAlarm, teamChallenge, worshipForm }
-}
-
-export function isTeamChallengeSlug(slug: string): boolean {
-  return slug === YC_TEAM_CHALLENGE_SLUG
 }
 
 export async function guardTeamChallengeAccess(slug: string) {

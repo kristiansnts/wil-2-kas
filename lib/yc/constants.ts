@@ -62,6 +62,10 @@ export const YC_NAMETAG_MIN_CHARS = 50
 
 export const YC_TEAM_CHALLENGE_SLUG = 'treasure-hunt'
 
+export function isTeamChallengeSlug(slug: string): boolean {
+  return slug === YC_TEAM_CHALLENGE_SLUG
+}
+
 export const YC_OUTBOUND_SLUG = 'outbound-challenge'
 
 export const YC_OUTBOUND_GUESS_POINTS = 10

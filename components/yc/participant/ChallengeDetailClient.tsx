@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { FormShell } from '@/components/forms/FormShell'
 import { AlertModal } from '@/components/ui/AlertModal'
 import TeamChallengeClient from '@/components/yc/participant/TeamChallengeClient'
-import { isTeamChallengeSlug } from '@/lib/yc/features'
+import { YC_TEAM_CHALLENGE_SLUG } from '@/lib/yc/constants'
 
 type Challenge = {
   slug: string
@@ -55,7 +55,7 @@ export default function ChallengeDetailClient({
     }
   }
 
-  if (challenge.type === 'TEAM' && isTeamChallengeSlug(challenge.slug)) {
+  if (challenge.type === 'TEAM' && challenge.slug === YC_TEAM_CHALLENGE_SLUG) {
     return (
       <TeamChallengeClient
         token={token}
