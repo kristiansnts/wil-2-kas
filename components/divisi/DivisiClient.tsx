@@ -419,8 +419,17 @@ function FormEventSheet({
   )
 }
 
-function EventCard({ ev, divisionId, spent, isPending, readOnly, onSelect, onEdit, onDelete }: {
-  ev: EventItem; divisionId: string; spent: number; isPending: boolean; readOnly: boolean
+function EventAmounts({ income, spent }: { income: number; spent: number }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+      <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 600 }}>{fmtShort(income)} masuk</div>
+      <div style={{ fontSize: 12, color: 'var(--accent)', fontWeight: 600 }}>{fmtShort(spent)} terpakai</div>
+    </div>
+  )
+}
+
+function EventCard({ ev, divisionId, income, spent, isPending, readOnly, onSelect, onEdit, onDelete }: {
+  ev: EventItem; divisionId: string; income: number; spent: number; isPending: boolean; readOnly: boolean
   onSelect: () => void; onEdit: () => void; onDelete: () => void
 }) {
   const [confirm, setConfirm] = useState(false)
@@ -441,7 +450,7 @@ function EventCard({ ev, divisionId, spent, isPending, readOnly, onSelect, onEdi
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{fmtShort(spent)} terpakai</div>
+            <EventAmounts income={income} spent={spent} />
             <Link href={`/divisi/${divisionId}/event/${ev.id}/edit`} onClick={e => { e.preventDefault(); onEdit() }} style={{ ...btnIcon, background: 'var(--accent)', color: 'white', textDecoration: 'none' }}>
               <Icon name="pencil" size={15} />
             </Link>
@@ -451,9 +460,7 @@ function EventCard({ ev, divisionId, spent, isPending, readOnly, onSelect, onEdi
           </div>
         )
       )}
-      {readOnly && (
-        <div style={{ fontSize: 13, color: 'var(--accent)', fontWeight: 600 }}>{fmtShort(spent)} terpakai</div>
-      )}
+      {readOnly && <EventAmounts income={income} spent={spent} />}
     </div>
   )
 }
@@ -662,12 +669,15 @@ export default function DivisiClient({ division, readOnly = false }: Props) {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {events.slice(0, 3).map(ev => {
-                const spent = txns.filter(t => t.eventId === ev.id && t.type === 'keluar').reduce((s, t) => s + t.amount, 0)
+                const eventTxns = txns.filter(t => t.eventId === ev.id)
+                const income = eventTxns.filter(t => t.type === 'masuk').reduce((s, t) => s + t.amount, 0)
+                const spent = eventTxns.filter(t => t.type === 'keluar').reduce((s, t) => s + t.amount, 0)
                 return (
                   <EventCard
                     key={ev.id}
                     ev={ev}
                     divisionId={division.id}
+                    income={income}
                     spent={spent}
                     isPending={isPending}
                     readOnly={readOnly}
