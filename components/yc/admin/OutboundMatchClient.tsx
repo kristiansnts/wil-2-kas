@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation'
 import { FormShell } from '@/components/forms/FormShell'
 import { GroupIcon } from '@/components/yc/GroupIcon'
 import { AlertModal } from '@/components/ui/AlertModal'
-import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS, YC_OUTBOUND_WIN_POINTS } from '@/lib/yc/constants'
+import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS, YC_OUTBOUND_WIN_POINTS, YC_OUTBOUND_YEL_YEL_MAX, YC_OUTBOUND_YEL_YEL_MIN } from '@/lib/yc/constants'
 import type { OutboundMatchDetail } from '@/lib/yc/actions/outbound'
-import { saveOutboundGuesses, setOutboundWinner } from '@/lib/yc/actions/outbound'
+import { saveOutboundGuesses, saveOutboundYelYel, setOutboundWinner } from '@/lib/yc/actions/outbound'
 
 function GuessSelect({
   id,
@@ -74,7 +74,9 @@ export default function OutboundMatchClient({ match }: { match: OutboundMatchDet
   const [winnerGroupId, setWinnerGroupId] = useState(match.winnerGroupId)
   const [winnerName, setWinnerName] = useState(match.winnerName)
   const [winnerPointsAwarded, setWinnerPointsAwarded] = useState(match.winnerPointsAwarded)
-  const [loading, setLoading] = useState<'save' | 'winner-a' | 'winner-b' | null>(null)
+  const [teamAYelYel, setTeamAYelYel] = useState(String(match.teamAYelYelPoints))
+  const [teamBYelYel, setTeamBYelYel] = useState(String(match.teamBYelYelPoints))
+  const [loading, setLoading] = useState<'save' | 'yel-yel' | 'winner-a' | 'winner-b' | null>(null)
   const [alert, setAlert] = useState<string | null>(null)
 
   async function handleSave() {
@@ -98,6 +100,30 @@ export default function OutboundMatchClient({ match }: { match: OutboundMatchDet
       }
     } catch {
       setAlert('Gagal menyimpan tebakan')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  async function handleSaveYelYel() {
+    setLoading('yel-yel')
+    try {
+      const res = await saveOutboundYelYel(
+        match.id,
+        Number(teamAYelYel) || 0,
+        Number(teamBYelYel) || 0,
+      )
+      if (res && 'error' in res) {
+        setAlert(res.error!)
+        return
+      }
+      if (res && 'ok' in res) {
+        setTeamAYelYel(String(res.teamAYelYelPoints))
+        setTeamBYelYel(String(res.teamBYelYelPoints))
+        router.refresh()
+      }
+    } catch {
+      setAlert('Gagal menyimpan poin yel-yel')
     } finally {
       setLoading(null)
     }
@@ -148,6 +174,54 @@ export default function OutboundMatchClient({ match }: { match: OutboundMatchDet
       </div>
 
       <div className="section-header yc-outbound-section" style={{ marginTop: 0 }}>
+        <div className="section-title">Poin Yel-yel</div>
+      </div>
+      <p className="yc-outbound-helper">
+        Penilaian yel-yel per tim di pos ini ({YC_OUTBOUND_YEL_YEL_MIN}–{YC_OUTBOUND_YEL_YEL_MAX}{' '}
+        poin, masuk ke total kelompok).
+      </p>
+      <div className="card yc-outbound-form-card">
+        <div className="form-group">
+          <label htmlFor="team-a-yel-yel" className="form-label">
+            {match.teamAName}
+          </label>
+          <input
+            id="team-a-yel-yel"
+            type="number"
+            className="form-input"
+            min={YC_OUTBOUND_YEL_YEL_MIN}
+            max={YC_OUTBOUND_YEL_YEL_MAX}
+            value={teamAYelYel}
+            disabled={loading != null}
+            onChange={e => setTeamAYelYel(e.target.value)}
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="team-b-yel-yel" className="form-label">
+            {match.teamBName}
+          </label>
+          <input
+            id="team-b-yel-yel"
+            type="number"
+            className="form-input"
+            min={YC_OUTBOUND_YEL_YEL_MIN}
+            max={YC_OUTBOUND_YEL_YEL_MAX}
+            value={teamBYelYel}
+            disabled={loading != null}
+            onChange={e => setTeamBYelYel(e.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          className="submit-btn yc-outbound-form-actions"
+          disabled={loading != null}
+          onClick={handleSaveYelYel}
+        >
+          {loading === 'yel-yel' ? 'Menyimpan…' : 'Simpan Poin Yel-yel'}
+        </button>
+      </div>
+
+      <div className="section-header yc-outbound-section">
         <div className="section-title">Tebakan Lawan Berikutnya</div>
       </div>
       <p className="yc-outbound-helper">

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "YcOutboundMatch" ADD COLUMN "teamAYelYelPoints" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "YcOutboundMatch" ADD COLUMN "teamBYelYelPoints" INTEGER NOT NULL DEFAULT 0;

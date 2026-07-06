@@ -33,6 +33,8 @@ type OutboundMatchRow = {
   teamBGuessPointsAwarded: boolean
   winnerGroupId: string | null
   winnerPointsAwarded: boolean
+  teamAYelYelPoints: number
+  teamBYelYelPoints: number
 }
 
 export async function resolveGroupIdByNum(num: number): Promise<string | null> {
@@ -131,4 +133,32 @@ export async function applyOutboundWinnerPoints(
   })
 
   return { pointsAwarded }
+}
+
+/** Apply yel-yel points per team; adjusts group total by delta when edited. */
+export async function applyOutboundYelYelPoints(
+  match: Pick<OutboundMatchRow, 'id' | 'teamANum' | 'teamBNum' | 'teamAYelYelPoints' | 'teamBYelYelPoints'>,
+  teamAYelYel: number,
+  teamBYelYel: number,
+): Promise<{ teamADelta: number; teamBDelta: number }> {
+  const teamADelta = teamAYelYel - match.teamAYelYelPoints
+  const teamBDelta = teamBYelYel - match.teamBYelYelPoints
+
+  if (teamADelta !== 0) {
+    const groupId = await resolveGroupIdByNum(match.teamANum)
+    if (groupId) await adjustGroupPoints(groupId, teamADelta)
+  }
+  if (teamBDelta !== 0) {
+    const groupId = await resolveGroupIdByNum(match.teamBNum)
+    if (groupId) await adjustGroupPoints(groupId, teamBDelta)
+  }
+
+  if (teamADelta !== 0 || teamBDelta !== 0) {
+    await prisma.ycOutboundMatch.update({
+      where: { id: match.id },
+      data: { teamAYelYelPoints: teamAYelYel, teamBYelYelPoints: teamBYelYel },
+    })
+  }
+
+  return { teamADelta, teamBDelta }
 }

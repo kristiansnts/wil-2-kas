@@ -2,9 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS, YC_OUTBOUND_SLUG, YC_OUTBOUND_WIN_POINTS } from '@/lib/yc/constants'
+import { YC_GROUP_COUNT, YC_OUTBOUND_GUESS_POINTS, YC_OUTBOUND_SLUG, YC_OUTBOUND_WIN_POINTS, YC_OUTBOUND_YEL_YEL_MAX, YC_OUTBOUND_YEL_YEL_MIN } from '@/lib/yc/constants'
 import {
   applyOutboundWinnerPoints,
+  applyOutboundYelYelPoints,
   getNextOpponentNum,
   groupNameFromNum,
   isNextOpponentGuessCorrect,
@@ -59,6 +60,13 @@ function validateTeamNum(num: number): string | null {
   return null
 }
 
+function validateYelYelPoints(points: number): string | null {
+  if (!Number.isInteger(points) || points < YC_OUTBOUND_YEL_YEL_MIN || points > YC_OUTBOUND_YEL_YEL_MAX) {
+    return `Poin yel-yel harus ${YC_OUTBOUND_YEL_YEL_MIN}–${YC_OUTBOUND_YEL_YEL_MAX}`
+  }
+  return null
+}
+
 export type OutboundMatchListItem = {
   id: string
   round: number
@@ -71,6 +79,8 @@ export type OutboundMatchListItem = {
   teamBGuessPointsAwarded: boolean
   winnerGroupId: string | null
   winnerPointsAwarded: boolean
+  teamAYelYelPoints: number
+  teamBYelYelPoints: number
   label: string
   status: ReturnType<typeof outboundMatchStatus>
   teamASlug: string
@@ -112,6 +122,8 @@ function serializeMatch(
     teamBGuessPointsAwarded: boolean
     winnerGroupId: string | null
     winnerPointsAwarded: boolean
+    teamAYelYelPoints: number
+    teamBYelYelPoints: number
   },
   groupsByNum: Map<number, { id: string; name: string; slug: string }>,
 ): OutboundMatchListItem {
@@ -127,6 +139,8 @@ function serializeMatch(
     teamBGuessPointsAwarded: match.teamBGuessPointsAwarded,
     winnerGroupId: match.winnerGroupId,
     winnerPointsAwarded: match.winnerPointsAwarded,
+    teamAYelYelPoints: match.teamAYelYelPoints,
+    teamBYelYelPoints: match.teamBYelYelPoints,
     label: outboundMatchLabel(match),
     status: outboundMatchStatus(match),
     teamASlug: groupsByNum.get(match.teamANum)?.slug ?? teamSlugFromNum(match.teamANum),
@@ -271,5 +285,36 @@ export async function setOutboundWinner(matchId: string, winnerGroupId: string) 
     ok: true,
     winPointsAwarded: scoring.pointsAwarded,
     winPoints: YC_OUTBOUND_WIN_POINTS,
+  }
+}
+
+export async function saveOutboundYelYel(
+  matchId: string,
+  teamAYelYel: number,
+  teamBYelYel: number,
+) {
+  await requireYcAdmin()
+
+  const errA = validateYelYelPoints(teamAYelYel)
+  if (errA) return { error: `Tim A: ${errA}` }
+  const errB = validateYelYelPoints(teamBYelYel)
+  if (errB) return { error: `Tim B: ${errB}` }
+
+  const match = await prisma.ycOutboundMatch.findUnique({ where: { id: matchId } })
+  if (!match) return { error: 'Pertandingan tidak ditemukan' }
+  if (!(await requireOutboundPositionAccess(match.position))) {
+    return { error: 'Akses ditolak untuk pos ini' }
+  }
+
+  const result = await applyOutboundYelYelPoints(match, teamAYelYel, teamBYelYel)
+
+  revalidateOutboundPaths()
+  revalidatePath(`/yc/admin/outbound/${matchId}`)
+  return {
+    ok: true,
+    teamAYelYelPoints: teamAYelYel,
+    teamBYelYelPoints: teamBYelYel,
+    teamADelta: result.teamADelta,
+    teamBDelta: result.teamBDelta,
   }
 }

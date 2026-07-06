@@ -231,6 +231,8 @@ model YcOutboundMatch {
   teamBGuessPointsAwarded Boolean  @default(false)
   winnerGroupId           String?
   winnerPointsAwarded     Boolean  @default(false)
+  teamAYelYelPoints       Int      @default(0)
+  teamBYelYelPoints       Int      @default(0)
   challenge               YcChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
   winnerGroup             YcGroup?    @relation("YcOutboundWinner", fields: [winnerGroupId], references: [id], onDelete: SetNull)
   createdAt               DateTime @default(now())

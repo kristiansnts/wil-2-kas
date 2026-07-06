@@ -70,6 +70,8 @@ export const YC_OUTBOUND_SLUG = 'outbound-challenge'
 
 export const YC_OUTBOUND_GUESS_POINTS = 10
 export const YC_OUTBOUND_WIN_POINTS = 20
+export const YC_OUTBOUND_YEL_YEL_MIN = 0
+export const YC_OUTBOUND_YEL_YEL_MAX = 100
 
 export const YC_QUIZ_ANSWER_SECONDS = 10
 export const YC_QUIZ_RETRY_SECONDS = 30

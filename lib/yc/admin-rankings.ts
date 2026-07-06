@@ -120,6 +120,8 @@ async function getOutboundRanks(): Promise<YcAdminGroupRank[]> {
         teamAGuessNum: true,
         teamBGuessNum: true,
         winnerGroupId: true,
+        teamAYelYelPoints: true,
+        teamBYelYelPoints: true,
       },
     }),
     prisma.ycGroup.findMany({ select: { id: true, slug: true, name: true } }),
@@ -134,11 +136,13 @@ async function getOutboundRanks(): Promise<YcAdminGroupRank[]> {
   const pointsByGroup = new Map<string, number>()
   const winsByGroup = new Map<string, number>()
   const guessPointsByGroup = new Map<string, number>()
+  const yelYelPointsByGroup = new Map<string, number>()
 
   for (const group of groups) {
     pointsByGroup.set(group.id, 0)
     winsByGroup.set(group.id, 0)
     guessPointsByGroup.set(group.id, 0)
+    yelYelPointsByGroup.set(group.id, 0)
   }
 
   function addGuessPoints(teamNum: number, guessNum: number | null, round: number) {
@@ -152,9 +156,19 @@ async function getOutboundRanks(): Promise<YcAdminGroupRank[]> {
     )
   }
 
+  function addYelYelPoints(teamNum: number, pts: number) {
+    if (pts <= 0) return
+    const group = groupByNum.get(teamNum)
+    if (!group) return
+    pointsByGroup.set(group.id, (pointsByGroup.get(group.id) ?? 0) + pts)
+    yelYelPointsByGroup.set(group.id, (yelYelPointsByGroup.get(group.id) ?? 0) + pts)
+  }
+
   for (const match of matches) {
     addGuessPoints(match.teamANum, match.teamAGuessNum, match.round)
     addGuessPoints(match.teamBNum, match.teamBGuessNum, match.round)
+    addYelYelPoints(match.teamANum, match.teamAYelYelPoints)
+    addYelYelPoints(match.teamBNum, match.teamBYelYelPoints)
 
     if (match.winnerGroupId) {
       pointsByGroup.set(
@@ -168,12 +182,13 @@ async function getOutboundRanks(): Promise<YcAdminGroupRank[]> {
   const rows = groups.map(g => {
     const wins = winsByGroup.get(g.id) ?? 0
     const guessPts = guessPointsByGroup.get(g.id) ?? 0
+    const yelYelPts = yelYelPointsByGroup.get(g.id) ?? 0
     return {
       id: g.id,
       slug: g.slug,
       name: g.name,
       points: pointsByGroup.get(g.id) ?? 0,
-      detail: `${wins} menang · ${guessPts} tebakan`,
+      detail: `${wins} menang · ${guessPts} tebakan · ${yelYelPts} yel-yel`,
     }
   })
 

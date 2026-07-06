@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed-yc": "npx tsx prisma/seed-yc.ts",
+    "db:seed-yc-peserta-extra": "npx tsx prisma/seed-yc-peserta-extra.ts",
+    "db:cleanup-yc-peserta-extra": "npx tsx prisma/cleanup-yc-peserta-extra.ts",
     "db:regenerate-yc-qr": "npx tsx prisma/regenerate-yc-qr.ts",
     "db:generate-yc-qr-cards": "npx tsx prisma/generate-yc-qr-cards.ts",
     "db:sync-yc-peserta": "npx tsx prisma/sync-yc-peserta-from-cards.ts"
