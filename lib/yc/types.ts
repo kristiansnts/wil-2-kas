@@ -10,6 +10,7 @@ export type YcGroupSummary = {
 export type YcParticipantFeatureFlags = {
   emergencyAlarm: boolean
   teamChallenge: boolean
+  nametagPairing: boolean
   worshipForm: boolean
 }
 

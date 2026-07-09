@@ -31,6 +31,7 @@ export async function updateFeatureFlags(flags: YcParticipantFeatureFlags) {
   await Promise.all([
     setYcSetting(YC_SETTING_KEYS.featureEmergencyAlarm, flags.emergencyAlarm ? '1' : '0'),
     setYcSetting(YC_SETTING_KEYS.featureTeamChallenge, flags.teamChallenge ? '1' : '0'),
+    setYcSetting(YC_SETTING_KEYS.featureNametagPairing, flags.nametagPairing ? '1' : '0'),
     setYcSetting(YC_SETTING_KEYS.featureWorshipForm, flags.worshipForm ? '1' : '0'),
   ])
   revalidatePath('/yc/admin/settings/features')

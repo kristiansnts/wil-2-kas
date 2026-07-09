@@ -33,6 +33,7 @@ export const YC_SETTING_KEYS = {
   kamarPdfUrl: 'kamar_pdf_url',
   featureEmergencyAlarm: 'feature_emergency_alarm',
   featureTeamChallenge: 'feature_team_challenge',
+  featureNametagPairing: 'feature_nametag_pairing',
   featureWorshipForm: 'feature_worship_form',
 } as const
 

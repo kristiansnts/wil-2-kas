@@ -17,6 +17,7 @@ export default async function ChallengeListPage({ params }: Props) {
     where: {
       isActive: true,
       ...(features.teamChallenge ? {} : { type: { not: 'TEAM' } }),
+      ...(features.nametagPairing ? {} : { slug: { not: YC_SIPALING_EXTROVERT_SLUG } }),
     },
     orderBy: [{ type: 'asc' }, { title: 'asc' }],
   })

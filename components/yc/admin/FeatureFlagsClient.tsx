@@ -22,6 +22,11 @@ const FEATURES: {
     description: 'Treasure hunt & emergency meeting di halaman challenge',
   },
   {
+    key: 'nametagPairing',
+    label: 'Nametag Pairing (Extrovert)',
+    description: 'Scan name tag & auto-redirect pasangan. Matikan saat treasure hunt.',
+  },
+  {
     key: 'worshipForm',
     label: 'Form Worship Night',
     description: 'Menu form anonim di dashboard peserta',

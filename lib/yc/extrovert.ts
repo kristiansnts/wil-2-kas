@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { YC_NAMETAG_MIN_CHARS, YC_SIPALING_EXTROVERT_SLUG } from './constants'
+import { isNametagPairingEnabled } from './features'
 import { pointsFromCharCount } from './nametag-scoring'
 import type { NametagPairingView } from './types'
 
@@ -102,6 +103,10 @@ function toPairingView(
 }
 
 export async function buildNametagStatus(participantId: string) {
+  if (!(await isNametagPairingEnabled())) {
+    return { challengeActive: false as const }
+  }
+
   const challenge = await getExtrovertChallenge()
   if (!challenge?.isActive) {
     return { challengeActive: false as const }

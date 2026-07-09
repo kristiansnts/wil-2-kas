@@ -10,13 +10,18 @@ async function isEnabled(key: string): Promise<boolean> {
   return val === '1'
 }
 
+export async function isNametagPairingEnabled(): Promise<boolean> {
+  return isEnabled(YC_SETTING_KEYS.featureNametagPairing)
+}
+
 export async function getParticipantFeatureFlags(): Promise<YcParticipantFeatureFlags> {
-  const [emergencyAlarm, teamChallenge, worshipForm] = await Promise.all([
+  const [emergencyAlarm, teamChallenge, nametagPairing, worshipForm] = await Promise.all([
     isEnabled(YC_SETTING_KEYS.featureEmergencyAlarm),
     isEnabled(YC_SETTING_KEYS.featureTeamChallenge),
+    isEnabled(YC_SETTING_KEYS.featureNametagPairing),
     isEnabled(YC_SETTING_KEYS.featureWorshipForm),
   ])
-  return { emergencyAlarm, teamChallenge, worshipForm }
+  return { emergencyAlarm, teamChallenge, nametagPairing, worshipForm }
 }
 
 export async function guardTeamChallengeAccess(slug: string) {
@@ -25,6 +30,13 @@ export async function guardTeamChallengeAccess(slug: string) {
   }
   if (!(await isEnabled(YC_SETTING_KEYS.featureTeamChallenge))) {
     return jsonError('Team challenge belum dibuka', 403)
+  }
+  return null
+}
+
+export async function guardNametagPairingAccess() {
+  if (!(await isNametagPairingEnabled())) {
+    return jsonError('Nametag pairing belum dibuka', 403)
   }
   return null
 }

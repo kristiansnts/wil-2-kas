@@ -21,6 +21,7 @@ export default async function ChallengeDetailPage({ params }: Props) {
   const challenge = await prisma.ycChallenge.findUnique({ where: { slug } })
   if (!challenge || !challenge.isActive) notFound()
   if (isTeamChallengeSlug(slug) && !features.teamChallenge) notFound()
+  if (slug === YC_SIPALING_EXTROVERT_SLUG && !features.nametagPairing) notFound()
 
   if (slug === YC_TUKANG_NGONTEN_SLUG) {
     redirect(`/yc/p/${token}/dokumentasi`)
