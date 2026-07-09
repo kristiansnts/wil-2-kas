@@ -119,54 +119,8 @@ export default function EmergencyClient({
     setSuccessRedirect(`🧩 Memory Fragment Recovered!\n+${data.points} Team Points${extra}`)
   }
 
-  async function confirmVote() {
-    if (!status.quizQuestion || !selected) return
-    setLoading(true)
-    try {
-      const res = await fetch(`/yc/api/p/${token}/challenges/${slug}/quiz/vote`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId: status.quizQuestion.id, selectedAnswer: selected }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setAlert(data.error || 'Gagal konfirmasi pilihan')
-        await fetchStatus()
-        return
-      }
-      const { submitResult, ...nextStatus } = data as YcEmergencyStatus & {
-        submitResult?: { correct: boolean; points?: number; fragmentOrder?: number; totalFragments?: number; allDone?: boolean }
-      }
-      setStatus(nextStatus)
-      if (data.myVote) setSelected(data.myVote)
-
-      if (submitResult?.correct) {
-        showQuizSuccess(submitResult)
-      } else if (submitResult && !submitResult.correct) {
-        setAlert('❌ Jawaban Salah\n"Ayo pikirkan secara logika jawabannya..."\nCoba lagi dalam 30 detik.')
-        await fetchStatus()
-      }
-    } catch {
-      setAlert('Gagal konfirmasi pilihan')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   async function submitQuiz() {
-    if (!status.quizQuestion) return
-
-    if (!status.allVoted) {
-      setAlert('Belum semua anggota konfirmasi pilihan.')
-      return
-    }
-    if (!status.allAgree) {
-      const lines = status.quizVotes
-        .filter(v => v.selectedAnswer)
-        .map(v => `${v.name}: ${v.selectedAnswer}`)
-      setAlert(`Ada yang jawabannya beda nih!\n\n${lines.join('\n')}\n\nDiskusikan ulang sampai semua sama.`)
-      return
-    }
+    if (!status.quizQuestion || !selected) return
 
     setLoading(true)
     try {
@@ -175,7 +129,7 @@ export default function EmergencyClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           questionId: status.quizQuestion.id,
-          selectedAnswer: status.uniqueAnswers[0] ?? selected,
+          selectedAnswer: selected,
         }),
       })
       const data = await res.json()
@@ -198,13 +152,13 @@ export default function EmergencyClient({
   }
 
   const showQuiz = status.status === 'QUIZ_OPEN' && status.quizQuestion
+  const canAnswer = status.isQrTrigger || status.isCaptain
   const quizTimedOut =
     showQuiz &&
     status.quizExpiresAt !== null &&
     new Date(status.quizExpiresAt).getTime() <= Date.now()
-  const canSelect = Boolean(showQuiz && !quizTimedOut)
+  const canSelect = Boolean(showQuiz && canAnswer && !quizTimedOut)
   const inGatherPhase = ['EMERGENCY', 'WAITING'].includes(status.status)
-  const voteMismatch = showQuiz && status.voteCount >= 2 && !status.allAgree
 
   return (
     <FormShell title="Emergency Meeting" sub={challengeTitle} back={`/yc/p/${token}/challenge/${slug}`}>
@@ -289,88 +243,45 @@ export default function EmergencyClient({
           <div className={`yc-quiz-timer ${quizSeconds <= 3 ? 'yc-quiz-timer--urgent' : ''}`}>
             {quizTimedOut ? 'Waktu habis!' : `${quizSeconds}s`}
           </div>
-          <div className="yc-progress-stat" style={{ fontSize: 15, marginBottom: 12 }}>
-            Pilihan dikonfirmasi: {status.voteCount}/{status.totalCount}
-          </div>
           <div style={{ fontWeight: 600, marginBottom: 12 }}>{status.quizQuestion.question}</div>
-          {(['A', 'B', 'C', 'D'] as const).map(key => {
-            const optKey = `option${key}` as keyof typeof status.quizQuestion
-            const label = status.quizQuestion![optKey] as string
-            return (
-              <label
-                key={key}
-                className={canSelect ? 'yc-quiz-option' : 'yc-quiz-option yc-quiz-option--disabled'}
-              >
-                <input
-                  type="radio"
-                  name="quiz"
-                  value={key}
-                  checked={selected === key}
-                  disabled={!canSelect}
-                  onChange={() => setSelected(key)}
-                />
-                <span>{key}. {label}</span>
-              </label>
-            )
-          })}
 
-          {canSelect && (
-            <button
-              className="submit-btn"
-              style={{ marginTop: 12 }}
-              disabled={loading || !selected}
-              onClick={confirmVote}
-            >
-              {status.hasConfirmedVote && status.myVote === selected
-                ? 'Update Pilihan'
-                : 'Konfirmasi Pilihan'}
-            </button>
-          )}
+          {canAnswer ? (
+            <>
+              {(['A', 'B', 'C', 'D'] as const).map(key => {
+                const optKey = `option${key}` as keyof typeof status.quizQuestion
+                const label = status.quizQuestion![optKey] as string
+                return (
+                  <label
+                    key={key}
+                    className={canSelect ? 'yc-quiz-option' : 'yc-quiz-option yc-quiz-option--disabled'}
+                  >
+                    <input
+                      type="radio"
+                      name="quiz"
+                      value={key}
+                      checked={selected === key}
+                      disabled={!canSelect}
+                      onChange={() => setSelected(key)}
+                    />
+                    <span>{key}. {label}</span>
+                  </label>
+                )
+              })}
 
-          {status.hasConfirmedVote && (
-            <div className="yc-progress-hint yc-progress-hint--ok" style={{ marginTop: 8 }}>
-              Pilihanmu: {status.myVote} ✓
-            </div>
-          )}
-
-          {status.quizVotes.some(v => v.selectedAnswer) && (
-            <div className="yc-quiz-votes" style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 600, marginBottom: 8 }}>Pilihan Anggota</div>
-              {status.quizVotes.map(v => (
-                <div key={v.participantId} className="yc-quiz-vote-row">
-                  <span>{v.name}</span>
-                  <span>{v.selectedAnswer ?? '—'}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {voteMismatch && (
-            <div className="yc-quiz-mismatch">
-              Ada yang jawabannya beda nih! Diskusikan ulang sampai semua sama.
-            </div>
-          )}
-
-          {status.allVoted && status.allAgree && !status.isCaptain && !status.isQrTrigger && (
-            <div className="yc-progress-hint yc-progress-hint--ok" style={{ marginTop: 8 }}>
-              Semua sudah sepakat — menunggu captain submit jawaban kelompok.
-            </div>
-          )}
-
-          {(status.isCaptain || status.isQrTrigger) && (
-            <button
-              className="submit-btn"
-              style={{ marginTop: 12, background: status.allAgree ? 'var(--green)' : undefined }}
-              disabled={loading || quizTimedOut || !status.allVoted || !status.allAgree}
-              onClick={submitQuiz}
-            >
-              Submit Jawaban Kelompok
-            </button>
-          )}
-
-          {!status.isCaptain && !status.isQrTrigger && (
+              {canSelect && (
+                <button
+                  className="submit-btn"
+                  style={{ marginTop: 12 }}
+                  disabled={loading || !selected}
+                  onClick={submitQuiz}
+                >
+                  Submit Jawaban
+                </button>
+              )}
+            </>
+          ) : (
             <div className="yc-progress-hint" style={{ marginTop: 8 }}>
-              Konfirmasi pilihanmu — jawaban disubmit otomatis saat semua anggota sepakat.
+              Menunggu pemindai QR atau captain menjawab quiz…
             </div>
           )}
         </div>

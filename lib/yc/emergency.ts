@@ -218,37 +218,10 @@ export async function recordQuizVote(
     include: { group: { include: { participants: true } } },
   })
   if (!session) throw new Error('Session tidak ditemukan')
-  if (session.status !== 'QUIZ_OPEN') throw new Error('Quiz belum terbuka')
-  if (isQuizExpired(session.quizOpenedAt)) {
-    await applyQuizTimeout(sessionId)
-    throw new Error(`Waktu habis. Coba lagi dalam ${YC_QUIZ_RETRY_SECONDS} detik`)
+  if (!canAnswerQuiz(session, session.group, participantId)) {
+    throw new Error('Hanya pemindai QR atau captain yang bisa menjawab')
   }
-  if (session.currentQuestionId !== questionId) throw new Error('Pertanyaan tidak aktif')
-
-  const answer = normalizeQuizAnswer(selectedAnswer)
-  if (!/^[ABCD]$/.test(answer)) throw new Error('Jawaban tidak valid')
-
-  await prisma.ycQuizVote.upsert({
-    where: { sessionId_participantId: { sessionId, participantId } },
-    create: { sessionId, participantId, questionId, selectedAnswer: answer },
-    update: { questionId, selectedAnswer: answer, votedAt: new Date() },
-  })
-
-  const voteSummary = await getQuizVoteSummary(
-    sessionId,
-    questionId,
-    session.group.participants,
-  )
-
-  if (voteSummary.allVoted && voteSummary.allAgree && voteSummary.agreedAnswer) {
-    const submitterId =
-      session.group.captainParticipantId ??
-      session.triggeredByParticipantId ??
-      participantId
-    return finalizeQuizFromVotes(sessionId, questionId, submitterId)
-  }
-
-  return null
+  return finalizeQuizAnswer(sessionId, questionId, participantId, selectedAnswer)
 }
 
 export type QuizSubmitResult =
@@ -262,11 +235,23 @@ export type QuizSubmitResult =
     }
   | { correct: false; retryAvailableAt: string }
 
-async function finalizeQuizFromVotes(
+function canAnswerQuiz(
+  session: { triggeredByParticipantId: string | null },
+  group: { captainParticipantId: string | null },
+  participantId: string,
+): boolean {
+  if (session.triggeredByParticipantId === participantId) return true
+  if (group.captainParticipantId === participantId) return true
+  if (!group.captainParticipantId && !session.triggeredByParticipantId) return true
+  return false
+}
+
+async function finalizeQuizAnswer(
   sessionId: string,
   questionId: string,
   submitterParticipantId: string,
-) {
+  selectedAnswer: string,
+): Promise<QuizSubmitResult> {
   const session = await prisma.ycTeamChallengeSession.findUnique({
     where: { id: sessionId },
     include: { challenge: true, group: { include: { participants: true } } },
@@ -282,26 +267,18 @@ async function finalizeQuizFromVotes(
   const question = await prisma.ycQuizQuestion.findUnique({ where: { id: questionId } })
   if (!question) throw new Error('Pertanyaan tidak ditemukan')
 
-  const voteSummary = await getQuizVoteSummary(
-    sessionId,
-    questionId,
-    session.group.participants,
-  )
-  if (!voteSummary.allVoted) throw new Error('Belum semua anggota konfirmasi pilihan')
-  if (!voteSummary.allAgree || !voteSummary.agreedAnswer) {
-    throw new Error('Jawaban anggota belum sama — diskusikan ulang')
-  }
+  const answer = normalizeQuizAnswer(selectedAnswer)
+  if (!/^[ABCD]$/.test(answer)) throw new Error('Jawaban tidak valid')
 
-  const agreedAnswer = voteSummary.agreedAnswer
   const isCorrect =
-    normalizeQuizAnswer(question.correctAnswer) === normalizeQuizAnswer(agreedAnswer)
+    normalizeQuizAnswer(question.correctAnswer) === answer
 
   await prisma.ycQuizAttempt.create({
     data: {
       sessionId,
       questionId,
       attemptedByParticipantId: submitterParticipantId,
-      selectedAnswer: agreedAnswer.toUpperCase(),
+      selectedAnswer: answer.toUpperCase(),
       isCorrect,
     },
   })
@@ -575,7 +552,7 @@ export async function adminForceOpenQuiz(groupId: string, challengeId: string) {
 export async function submitQuizAnswer(
   sessionId: string,
   questionId: string,
-  _selectedAnswer: string,
+  selectedAnswer: string,
   participantId: string,
 ) {
   const session = await prisma.ycTeamChallengeSession.findUnique({
@@ -584,13 +561,10 @@ export async function submitQuizAnswer(
   })
   if (!session) throw new Error('Session tidak ditemukan')
 
-  const canSubmit =
-    session.group.captainParticipantId === participantId ||
-    session.triggeredByParticipantId === participantId ||
-    !session.group.captainParticipantId
+  const canSubmit = canAnswerQuiz(session, session.group, participantId)
 
   if (!canSubmit) {
-    throw new Error('Hanya captain atau pemindai QR yang bisa submit jawaban')
+    throw new Error('Hanya captain atau pemindai QR yang bisa menjawab')
   }
 
   if (session.status === 'FAILED') {
@@ -608,5 +582,5 @@ export async function submitQuizAnswer(
     throw new Error('Quiz belum terbuka')
   }
 
-  return finalizeQuizFromVotes(sessionId, questionId, participantId)
+  return finalizeQuizAnswer(sessionId, questionId, participantId, selectedAnswer)
 }

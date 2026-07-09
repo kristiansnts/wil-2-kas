@@ -32,7 +32,7 @@ export async function POST(req: Request, { params }: Params) {
   try {
     const submitResult = await recordQuizVote(session.id, participant.id, questionId, selectedAnswer)
     const status = await buildEmergencyStatus(participant.groupId, slug, participant.id)
-    return NextResponse.json(submitResult ? { ...status, submitResult } : status)
+    return NextResponse.json({ ...status, submitResult })
   } catch (e) {
     return jsonError(e instanceof Error ? e.message : 'Gagal menyimpan pilihan')
   }
