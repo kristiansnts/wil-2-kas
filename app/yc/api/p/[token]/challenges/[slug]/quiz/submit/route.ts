@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { guardTeamChallengeAccess } from '@/lib/yc/features'
 import { jsonError, withParticipant } from '@/lib/yc/api-helpers'
 import { submitQuizAnswer } from '@/lib/yc/emergency'
+import { ycLog } from '@/lib/yc/log'
 
 type Params = { params: Promise<{ token: string; slug: string }> }
 
@@ -30,9 +31,25 @@ export async function POST(req: Request, { params }: Params) {
   if (!questionId || !selectedAnswer) return jsonError('Jawaban wajib diisi')
 
   try {
-    const result = await submitQuizAnswer(session.id, questionId, selectedAnswer, participant.id)
-    return NextResponse.json(result)
+    const quizResult = await submitQuizAnswer(session.id, questionId, selectedAnswer, participant.id)
+    ycLog('emergency-quiz', quizResult.correct ? 'correct' : 'wrong', {
+      participantId: participant.id,
+      groupId: participant.groupId,
+      questionId,
+      selectedAnswer,
+      ...(quizResult.correct
+        ? { fragmentOrder: quizResult.fragmentOrder, points: quizResult.points }
+        : { retryAvailableAt: quizResult.retryAvailableAt }),
+    })
+    return NextResponse.json(quizResult)
   } catch (e) {
-    return jsonError(e instanceof Error ? e.message : 'Gagal submit quiz')
+    const message = e instanceof Error ? e.message : 'Gagal submit quiz'
+    ycLog('emergency-quiz', 'error', {
+      participantId: participant.id,
+      groupId: participant.groupId,
+      questionId,
+      message,
+    })
+    return jsonError(message)
   }
 }

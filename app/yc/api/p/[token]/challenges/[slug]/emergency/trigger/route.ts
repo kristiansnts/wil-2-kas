@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { guardTeamChallengeAccess } from '@/lib/yc/features'
 import { jsonError, withParticipant } from '@/lib/yc/api-helpers'
 import { triggerEmergency, buildEmergencyStatus } from '@/lib/yc/emergency'
+import { ycLog } from '@/lib/yc/log'
 import { parseScannedQrCode } from '@/lib/yc/parse-qr-scan'
 
 type Params = { params: Promise<{ token: string; slug: string }> }
@@ -22,16 +23,29 @@ export async function POST(req: Request, { params }: Params) {
 
   const body = await req.json().catch(() => ({}))
   const qrCode = parseScannedQrCode(String(body.qrCode ?? ''))
-  if (!qrCode) return jsonError('QR Fragment wajib diisi')
+  if (!qrCode) {
+    ycLog('emergency-trigger', 'invalid_qr', { participantId: participant.id, slug })
+    return jsonError('QR Fragment wajib diisi')
+  }
 
   const question = await prisma.ycQuizQuestion.findFirst({
     where: { challengeId: challenge.id, fragmentQrCode: qrCode },
   })
-  if (!question) return jsonError('QR Fragment tidak dikenali')
+  if (!question) {
+    ycLog('emergency-trigger', 'unknown_fragment', { participantId: participant.id, qrCode })
+    return jsonError('QR Fragment tidak dikenali')
+  }
 
   try {
     const session = await triggerEmergency(participant.groupId, challenge.id, participant.id, question.id)
     const status = await buildEmergencyStatus(participant.groupId, slug, participant.id)
+    ycLog('emergency-trigger', 'ok', {
+      participantId: participant.id,
+      groupId: participant.groupId,
+      fragmentOrder: question.fragmentOrder,
+      qrCode,
+      emergencyCalledAt: session.emergencyCalledAt?.toISOString() ?? null,
+    })
     return NextResponse.json({
       ok: true,
       status: 'EMERGENCY',
@@ -40,6 +54,14 @@ export async function POST(req: Request, { params }: Params) {
       emergencyStatus: status,
     })
   } catch (e) {
-    return jsonError(e instanceof Error ? e.message : 'Gagal trigger emergency')
+    const message = e instanceof Error ? e.message : 'Gagal trigger emergency'
+    ycLog('emergency-trigger', 'error', {
+      participantId: participant.id,
+      groupId: participant.groupId,
+      fragmentOrder: question.fragmentOrder,
+      qrCode,
+      message,
+    })
+    return jsonError(message)
   }
 }

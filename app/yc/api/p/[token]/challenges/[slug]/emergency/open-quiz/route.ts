@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { guardTeamChallengeAccess } from '@/lib/yc/features'
 import { jsonError, withParticipant } from '@/lib/yc/api-helpers'
 import { openQuiz, buildEmergencyStatus } from '@/lib/yc/emergency'
+import { ycLog } from '@/lib/yc/log'
 
 type Params = { params: Promise<{ token: string; slug: string }> }
 
@@ -27,8 +28,19 @@ export async function POST(_req: Request, { params }: Params) {
   try {
     await openQuiz(session.id, participant.id)
     const status = await buildEmergencyStatus(participant.groupId, slug, participant.id)
+    ycLog('emergency-open-quiz', 'ok', {
+      participantId: participant.id,
+      groupId: participant.groupId,
+      sessionId: session.id,
+    })
     return NextResponse.json(status)
   } catch (e) {
-    return jsonError(e instanceof Error ? e.message : 'Gagal membuka quiz')
+    const message = e instanceof Error ? e.message : 'Gagal membuka quiz'
+    ycLog('emergency-open-quiz', 'error', {
+      participantId: participant.id,
+      groupId: participant.groupId,
+      message,
+    })
+    return jsonError(message)
   }
 }
