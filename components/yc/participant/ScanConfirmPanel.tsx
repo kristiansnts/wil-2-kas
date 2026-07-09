@@ -7,6 +7,7 @@ import {
   setLastSeenEmergencyAt,
   stopEmergencyAlarm,
 } from '@/lib/yc/emergency-sound'
+import { ycLogClient } from '@/lib/yc/log'
 
 type Props = {
   token: string
@@ -29,6 +30,7 @@ export default function ScanConfirmPanel({
 
   async function confirmEmergency() {
     setLoading(true)
+    ycLogClient(token, 'treasure-hunt', 'emergency_trigger_begin', { slug, fragmentOrder, qrCode })
     try {
       const res = await fetch(`/yc/api/p/${token}/challenges/${slug}/emergency/trigger`, {
         method: 'POST',
@@ -37,16 +39,27 @@ export default function ScanConfirmPanel({
       })
       const data = await res.json()
       if (!res.ok) {
+        ycLogClient(token, 'treasure-hunt', 'emergency_trigger_failed', {
+          status: res.status,
+          error: data.error ?? null,
+        })
         setAlert(data.error || 'Gagal memulai Emergency Meeting')
         return
       }
+
+      ycLogClient(token, 'treasure-hunt', 'emergency_trigger_ok', {
+        emergencyCalledAt: data.emergencyCalledAt ?? null,
+      })
 
       if (data.emergencyCalledAt) {
         setLastSeenEmergencyAt(data.emergencyCalledAt)
       }
       stopEmergencyAlarm()
       router.push(`/yc/p/${token}/challenge/${slug}/emergency`)
-    } catch {
+    } catch (e) {
+      ycLogClient(token, 'treasure-hunt', 'emergency_trigger_network_error', {
+        message: e instanceof Error ? e.message : String(e),
+      })
       setAlert('Gagal memulai Emergency Meeting')
     } finally {
       setLoading(false)

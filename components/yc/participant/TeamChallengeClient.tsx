@@ -7,6 +7,7 @@ import { AlertModal } from '@/components/ui/AlertModal'
 import EmergencySoundToggle from '@/components/yc/participant/EmergencySoundToggle'
 import ScanConfirmPanel from '@/components/yc/participant/ScanConfirmPanel'
 import QrScanner from '@/components/yc/participant/QrScanner'
+import { ycLogClient } from '@/lib/yc/log'
 
 type Challenge = {
   slug: string
@@ -44,20 +45,30 @@ export default function TeamChallengeClient({
       const res = await fetch(`/yc/api/p/${token}/challenges/${challenge.slug}/emergency/status`)
       if (!res.ok) return
       const data = await res.json()
-      setTeamStatus(data.status)
+      setTeamStatus(prev => (prev === data.status ? prev : data.status))
     } catch {
       /* ignore */
     }
   }, [token, challenge.slug])
 
   useEffect(() => {
-    if (!isExploring(teamStatus)) return
+    if (!isExploring(teamStatus) || loading) return
     fetchStatus()
     const id = setInterval(fetchStatus, 3000)
     return () => clearInterval(id)
-  }, [teamStatus, fetchStatus])
+  }, [teamStatus, fetchStatus, loading])
 
-  async function handleQrScan(text: string) {
+  const handleScannerError = useCallback((msg: string) => {
+    ycLogClient(token, 'treasure-hunt', 'camera_error', { message: msg })
+    setAlert(msg)
+  }, [token])
+
+  const handleQrScan = useCallback(async (text: string) => {
+    ycLogClient(token, 'treasure-hunt', 'scan_submit', {
+      slug: challenge.slug,
+      rawLen: text.length,
+      rawPreview: text.slice(0, 80),
+    })
     setLoading(true)
     try {
       const res = await fetch(`/yc/api/p/${token}/challenges/${challenge.slug}/scan`, {
@@ -67,18 +78,29 @@ export default function TeamChallengeClient({
       })
       const data = await res.json()
       if (!res.ok) {
+        ycLogClient(token, 'treasure-hunt', 'scan_rejected', {
+          status: res.status,
+          error: data.error ?? null,
+        })
         setAlert(data.error || 'QR tidak valid')
         setScanKey(k => k + 1)
         return
       }
+      ycLogClient(token, 'treasure-hunt', 'scan_ok', {
+        fragmentOrder: data.fragmentOrder,
+        qrCode: data.qrCode,
+      })
       setPendingScan({ qrCode: data.qrCode, fragmentOrder: data.fragmentOrder })
-    } catch {
+    } catch (e) {
+      ycLogClient(token, 'treasure-hunt', 'scan_network_error', {
+        message: e instanceof Error ? e.message : String(e),
+      })
       setAlert('Gagal memproses QR')
       setScanKey(k => k + 1)
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, challenge.slug])
 
   const exploring = isExploring(teamStatus)
   const emergencyActive = !exploring && teamStatus !== 'COMPLETED'
@@ -112,8 +134,9 @@ export default function TeamChallengeClient({
             </p>
             <QrScanner
               key={scanKey}
+              token={token}
               onScan={handleQrScan}
-              onError={msg => setAlert(msg)}
+              onError={handleScannerError}
             />
           </div>
           {loading && <div className="yc-progress-hint">Memverifikasi QR…</div>}

@@ -162,7 +162,7 @@ export default function ExtrovertChallengeClient({
           <p className="yc-progress-hint" style={{ marginBottom: 12 }}>
             Arahkan kamera ke QR code di name tag peserta. Pasanganmu akan otomatis diarahkan ke halaman ini.
           </p>
-          <QrScanner key={scanKey} onScan={handleScan} onError={msg => setAlert(msg)} />
+          <QrScanner key={scanKey} token={token} onScan={handleScan} onError={msg => setAlert(msg)} />
           <button
             className="btn-secondary"
             style={{ marginTop: 12, width: '100%' }}
