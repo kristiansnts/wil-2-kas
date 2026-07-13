@@ -74,6 +74,11 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
   const [sortCol, setSortCol] = useState<'date' | 'amount'>('date')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [page, setPage] = useState(1)
+  const [showExportModal, setShowExportModal] = useState(false)
+  const [exportMode, setExportMode] = useState<'pick' | 'range' | 'event'>('pick')
+  const [exportFrom, setExportFrom] = useState(monthStart)
+  const [exportTo, setExportTo] = useState(today)
+  const [exportEventId, setExportEventId] = useState('')
 
   function toggleSort(col: 'date' | 'amount') {
     if (sortCol === col) {
@@ -149,6 +154,38 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
   const pageTitle = fixedDiv ? `Laporan – ${fixedDiv.name}` : 'Laporan Keuangan'
 
   const showEventFilter = visibleEvents.length > 0
+
+  const exportEvents = useMemo(() => {
+    if (fixedDivisionId) return events.filter(e => e.divisionId === fixedDivisionId)
+    if (isAdmin && filterDiv !== 'all' && filterDiv !== 'umum') {
+      return events.filter(e => e.divisionId === filterDiv)
+    }
+    return events
+  }, [events, fixedDivisionId, isAdmin, filterDiv])
+
+  function openExportModal() {
+    setExportMode('pick')
+    setExportFrom(dateFrom)
+    setExportTo(dateTo)
+    setExportEventId(filteredEventId !== 'all' ? filteredEventId : (exportEvents[0]?.id ?? ''))
+    setShowExportModal(true)
+  }
+
+  function buildExportUrl(mode: 'range' | 'event') {
+    const params = new URLSearchParams()
+    if (mode === 'range') {
+      if (exportFrom) params.set('from', exportFrom)
+      if (exportTo) params.set('to', exportTo)
+    } else {
+      params.set('eventId', exportEventId)
+    }
+    if (isAdmin) {
+      if (filterDiv !== 'all') params.set('divisionId', filterDiv)
+      else if (filterScope !== 'all') params.set('scope', filterScope)
+    }
+    if (!includeDK) params.set('includeDK', '0')
+    return `/api/laporan/transaksi/export?${params.toString()}`
+  }
 
   return (
     <>
@@ -253,6 +290,10 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
                 style={{ flexShrink: 0 }}
               />
               <span>Termasuk Dana Kesejahteraan</span>
+            </button>
+
+            <button type="button" className="submit-btn" onClick={openExportModal}>
+              Unduh Excel
             </button>
           </div>
 
@@ -383,6 +424,108 @@ export default function LaporanClient({ transactions, divisions, events, isAdmin
           <div style={{ height: 16 }} />
         </div>
       </div>
+
+      {showExportModal && (
+        <div
+          className="no-print"
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={() => setShowExportModal(false)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'var(--surface)', borderRadius: 16, border: '1px solid var(--border)', width: '100%', maxWidth: 340, overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.16)' }}
+          >
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ fontWeight: 700, fontSize: 15 }}>
+                {exportMode === 'pick' ? 'Unduh Excel' : exportMode === 'range' ? 'Per Range Tanggal' : 'Per Event'}
+              </div>
+              {exportMode !== 'pick' && (
+                <button
+                  type="button"
+                  onClick={() => setExportMode('pick')}
+                  style={{ background: 'none', border: 'none', color: 'var(--accent)', fontSize: 13, fontWeight: 600, cursor: 'pointer', padding: 0 }}
+                >
+                  Kembali
+                </button>
+              )}
+            </div>
+
+            {exportMode === 'pick' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setExportMode('range')}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', border: 'none', borderBottom: '1px solid var(--border)', background: 'none', cursor: 'pointer', color: 'inherit', textAlign: 'left' }}
+                >
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>Per Range Tanggal</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>›</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExportMode('event')}
+                  disabled={exportEvents.length === 0}
+                  style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', border: 'none', background: 'none', cursor: exportEvents.length === 0 ? 'default' : 'pointer', color: exportEvents.length === 0 ? 'var(--muted)' : 'inherit', textAlign: 'left' }}
+                >
+                  <span style={{ fontWeight: 600, fontSize: 14 }}>Per Event</span>
+                  <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    {exportEvents.length === 0 ? 'Tidak ada event' : '›'}
+                  </span>
+                </button>
+              </>
+            )}
+
+            {exportMode === 'range' && (
+              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="form-group">
+                  <label className="form-label">Dari</label>
+                  <DateInput className="form-input" value={exportFrom} onChange={setExportFrom} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Sampai</label>
+                  <DateInput className="form-input" value={exportTo} onChange={setExportTo} />
+                </div>
+                <a
+                  href={buildExportUrl('range')}
+                  className="submit-btn"
+                  style={{ textAlign: 'center', textDecoration: 'none', display: 'block' }}
+                  onClick={() => setShowExportModal(false)}
+                >
+                  Unduh Excel
+                </a>
+              </div>
+            )}
+
+            {exportMode === 'event' && (
+              <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div className="form-group">
+                  <label className="form-label">Event</label>
+                  <select
+                    className="form-select"
+                    value={exportEventId}
+                    onChange={e => setExportEventId(e.target.value)}
+                  >
+                    {exportEvents.map(e => (
+                      <option key={e.id} value={e.id}>{e.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <a
+                  href={exportEventId ? buildExportUrl('event') : undefined}
+                  className="submit-btn"
+                  style={{
+                    textAlign: 'center', textDecoration: 'none', display: 'block',
+                    opacity: exportEventId ? 1 : 0.6,
+                    pointerEvents: exportEventId ? 'auto' : 'none',
+                  }}
+                  onClick={() => setShowExportModal(false)}
+                >
+                  Unduh Excel
+                </a>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }
